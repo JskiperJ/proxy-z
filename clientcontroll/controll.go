@@ -50,6 +50,7 @@ type ClientControl struct {
 	lock       sync.RWMutex
 	Addr       gs.Str
 	closed     bool
+	closeFlag  bool
 }
 
 func NewClientControll(addr string, listenport int) *ClientControl {
@@ -63,7 +64,7 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 	c := &ClientControl{
 		Addr:       gs.Str(addr),
 		ListenPort: listenport,
-		ClientNum:  30,
+		ClientNum:  40,
 		lastUse:    -1,
 	}
 	return c
@@ -85,16 +86,23 @@ func RecvMsg(reply gs.Str) (di any, o bool) {
 }
 
 func (c *ClientControl) TryClose() {
-	c.closed = true
+	c.closeFlag = true
 }
 
 func (c *ClientControl) ChangeRoute(host string) {
 
-	if c.closed {
+	if c.closeFlag {
 		c.Addr = gs.Str(host)
 	} else {
 		gs.Str("server is not closed !").Color("r").Println()
 	}
+	for {
+		time.Sleep(1 * time.Second)
+		if c.closed {
+			break
+		}
+	}
+	c.Socks5Listen()
 }
 
 func (c *ClientControl) ChangePort(port int) {
@@ -218,7 +226,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 				c.ReportErrorProxy()
 				c.ErrCount = 0
 			}
-			if c.closed {
+			if c.closeFlag {
 				break
 			}
 			socks5con, err := l.Accept()
@@ -302,6 +310,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 
 		}
 	}
+	c.closed = true
 	return
 }
 

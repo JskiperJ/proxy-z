@@ -12,92 +12,288 @@
         .left-section {
             display: flex;
             float: left;
-            width: 20%;
-            flex-direction: column;
-            /* justify-content: center; */
-            /* align-items: l; */
-            /* max-width: 4in; */
-            /* background-color: lightgray; */
+            width: 36%;
+            flex-flow: wrap;
+
             padding: 10px;
             margin-top: 1vh;
             min-height: 95vh;
+            height: 200px;
+            overflow: scroll;
         }
         .right-section {
             margin-top: 1vh;
             display: flex;
+            
             float: right;
             min-width: 4in;
-            width:70%;
+            width:50%;
             /* max-width: 20in; */
             min-height: 95vh;
             background-color: lightgray;
             padding: 10px;
         }
+        
         .route{
             background-color: white;
             /* display: baddressk; */
             margin: 1px;
             margin-top: 1cm;
-            height: 1in;
-
+            height: 1.1in;
+            min-width: 200px;
+            margin-left: 20px;
             max-width: 1in;
-            min-width: 150px;
             padding: 0.1cm;
             border: 1px solid whitesmoke;
-            border-top: 5px solid darkcyan;
             border-radius: 10px;
+            font-size: initial;
             box-shadow:10px 10px 10px gray;
+            border-top: 5px solid rgb(255, 21, 0);
+        }
+
+        .used-route{
+            z-index: 4;
+            background-color: white;
+            /* display: baddressk; */
+            margin: 1px;
+            margin-top: 1cm;
+            height: 1.1in;
+            min-width: 200px;
+            margin-left: 20px;
+            max-width: 1in;
+            padding: 0.1cm;
+            border: 1px solid whitesmoke;
+            border-radius: 10px;
+            font-size: initial;
+            box-shadow:10px 10px 10px gray;
+            border-top: 5px solid rgb(0, 139, 65);
         }
         
-        .route > address{
-            display: block;
-    
-            float: right;
-            margin-top: 40px;
+        .route > addres{
+            /* display: block; */
+            color: darkcyan;
+            /* float: right; */
+            /* margin-top: 35px; */
+            font-size: initial;
         }
         .route > .host{
             display: flex;
             font-family:'Courier New', Courier, monospace;
             font-size: medium;
-            font-weight: 500;
+            font-weight: bold;
             border-bottom: 1px solid black;
             justify-content: center;
+            font-size: initial;
+        }
+        .route > i{
+            font-family:monospace;
+            color: brown;
+            font-size: initial;
+        }
+
+        .used-route > addres{
+            /* display: block; */
+            color: darkcyan;
+            /* float: left; */
+            margin-top: 30px;
+            font-size: initial;
+        }
+        .used-route > .host{
+            display: flex;
+            font-family:'Courier New', Courier, monospace;
+            font-size: medium;
+            font-weight: bold;
+            border-bottom: 1px solid black;
+            justify-content: center;
+            font-size: initial;
+        }
+        .used-route > i{
+            font-family:monospace;
+            color: brown;
+            
+            font-size: initial;
         }
 
         .route:hover {
-            border-top: 5px solid rgb(0, 94, 255);
+            border-top: 5px solid rgb(248, 198, 33);
+            transition:  0.5s;
+            margin-top: 1.1cm;
+            cursor: pointer;
+        }
+        .used-route:hover {
+            
             transition:  0.5s;
             margin-top: 1.1cm;
             cursor: pointer;
         }
     
+        .running-area{
+            z-index: 1;
+            display: flex;
+            flex-flow: wrap;
+            height: 200px;
+            overflow: scroll;
+            height: 94vh;
+            padding: 5px;
+            width: 100%;
+            border: 2px dashed ;
+        }
+        #area-title{
+            position: fixed;
+            top: 30px;
+            /* z-index: 2; */
+        }
+
+        .start-btn{
+            display: block;
+            float: right;
+            width: 65px;
+            height: 35px;
+            border-radius: 12px;
+            border: 8px solid rgb(201, 231, 210);
+            background-color: darkcyan;
+            color: azure;
+            padding: initial;
+            cursor:context-menu;
+        
+        }
+
+        
+        
+
+        
+
     </style>
 </head>
 <body>
-    <div class="left-section">
-        <!-- <h2>Left Section</h2>
-        <p>Content goes here...</p> -->
-        <div class="route">
-            <div class="host">123.123.21.323</div>
+    <div class="left-section" id="ready-area">
+        
+        {{ range $no, $onevps := . }}
+        <div id="host-{{$no}}" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">{{$onevps.Host}}</div>
             </br>
-            <address>Location</address>
+            TTL: <i>{{$onevps.ConnectedQuality}}</i></br>
+            LOC: <addres>{{$onevps.Location}}</addres>
+            <button class="start-btn" onclick="return Go('{{$onevps.Host}}','host-{{$no}}')">Go</button>
         </div>
-        <div class="route">
-            <div class="host">123.123.21.323</div>
+        {{ end }}
+        <!-- <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
             </br>
-            <address>addressation</address>
-        </div>
-        <div class="route">
-            <div class="host">123.123.21.323</div>
+            TTL: <i>123.12412ms</i>
             </br>
-            <address>addressation</address>
-        </div>
+            LOc:<addres>Location</addres>
+            </br>
+            <button class="start-btn">Go</button>
+        </div> -->
       </div>
+
       <div class="right-section">
-        <h2>Right Section</h2>
-        <p>Content goes here...</p>
+        <h1 id="area-title">
+            Can Drag left <u style="color: brown;">block</u>  to here! to <i style="color: darkgreen;">Running</i> 
+        </h1>
+        <div class="running-area" id="running-area">
+            
+        </div>
+        
       </div>
     
-    
+    <script>
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+function drag(ev) {
+    console.log(ev.target);
+  ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  var data = ev.dataTransfer.getData("text");
+  ev.target.appendChild(document.getElementById(data));
+}
+
+const droppableDiv = document.getElementById("running-area");
+droppableDiv.addEventListener("dragover", function(event) {
+  event.preventDefault();
+});
+
+droppableDiv.addEventListener("drop", function(event) {
+  event.preventDefault();
+
+  const childN = event.target.childNodes[1];
+  if (childN != null && childN.classList[0] == "used-route"){
+    childN.classList.remove("used-route");
+    childN.classList.add("route");
+    document.getElementById("ready-area").prepend(childN);
+  }
+  
+  const data = event.dataTransfer.getData("text");
+  let movedE = document.getElementById(data);
+  movedE.classList.remove("route");
+  movedE.classList.add("used-route");
+  let subE = movedE.getElementsByTagName("button");
+  subE[0].textContent = "stop";
+  event.target.appendChild(movedE);
+//   droppableDiv.classList.remove("run");
+//   droppableDiv.classList.add("run");
+});
+
+const backReady = document.getElementById("ready-area");
+backReady.addEventListener("dragover", function(event) {
+  event.preventDefault();
+});
+backReady.addEventListener("drop", function(event) {
+  event.preventDefault();
+  const data = event.dataTransfer.getData("text");
+  let movedE = document.getElementById(data);
+  movedE.classList.remove("used-route");
+  movedE.classList.add("route");
+  let subE = movedE.getElementsByTagName("button");
+  subE[0].textContent = "Go";
+  event.target.appendChild(movedE);
+  const childN = droppableDiv.childNodes[1];
+  if (childN == null){
+    droppableDiv.classList.remove("run");
+  }
+});
+
+
+function Go(host, id){
+    fetch("/z-api", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            op:"switch",
+            host:host,
+        })
+    }).then(res => {
+        let d = JSON.parse(res);
+        if (d.status == "ok"){
+            let movedE = document.getElementById(id);
+            if (moveE != null){
+                let Running = document.getElementById("running-area");
+                let childN = Running.childNodes[1];
+                if (childN != null && childN.classList[0] == "used-route"){
+                    childN.classList.remove("used-route");
+                    childN.classList.add("route");
+                    document.getElementById("ready-area").prepend(childN);
+                }
+                movedE.classList.remove("route");
+                movedE.classList.add("used-route");
+                let subE = movedE.getElementsByTagName("button");
+                subE[0].textContent = "stop";
+                Running.appendChild(movedE);
+            }
+        }else{
+            alert(d.msg);
+        }
+    });
+
+}
+
+    </script>
 </body>
 </html>

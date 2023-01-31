@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
+	"gitee.com/dark.H/ProxyZ/clientcontroll"
 	"gitee.com/dark.H/gs"
 )
 
 type ClientInterface interface {
 	TryClose()
 	ChangeRoute(string)
-	Socks5Listen()
+	Socks5Listen() error
 	ChangePort(int)
 }
 
@@ -83,8 +84,8 @@ func localSetupHandler() http.Handler {
 		if op, ok := d["op"]; ok {
 			switch op {
 			case "connect":
-				if user := d["user"]; user != nil {
-					if pwd := d["pwd"]; pwd != nil {
+				if user, ok := d["user"]; ok && user != nil {
+					if pwd, ok := d["pwd"]; ok && pwd != nil {
 						go func() {
 							if vpss := GitGetAccount("https://"+string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022")), user.(string), pwd.(string)); vpss.Count() > 0 {
 								globalClient.Routes = vpss
@@ -93,6 +94,19 @@ func localSetupHandler() http.Handler {
 						Reply(w, "ok", true)
 						return
 					}
+				}
+			case "switch":
+				if host, ok := d["host"]; ok && host != nil {
+					if globalClient.ClientConf == nil {
+						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), 3080)
+						go globalClient.ClientConf.Socks5Listen()
+					} else {
+						globalClient.ClientConf.TryClose()
+						go globalClient.ClientConf.ChangeRoute(host.(string))
+					}
+					Reply(w, "ok", true)
+				} else {
+					Reply(w, "no host", false)
 				}
 			}
 		}
