@@ -113,6 +113,7 @@ func (c *ClientControl) ChangeRoute(host string) {
 			break
 		}
 	}
+
 	c.Socks5Listen()
 }
 
@@ -232,6 +233,8 @@ func (c *ClientControl) Socks5Listen() (err error) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		c.closeFlag = false
+		c.closed = false
 		for {
 			if c.ErrCount > 7 {
 				c.ReportErrorProxy()

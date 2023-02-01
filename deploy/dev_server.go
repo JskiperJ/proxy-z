@@ -28,6 +28,16 @@ var (
 	DOWNADDR = ""
 )
 
+type Onevps struct {
+	Host             string        `json:"Host"`
+	Pwd              string        `json:"Pwd"`
+	Location         string        `json:"Location"`
+	Tag              string        `json:"Tag"`
+	Speed            string        `json:"Speed"`
+	ConnectedQuality time.Duration `json:"ConnectedQuality"`
+	IDS              int           `json:"IDS"`
+}
+
 func SetDownloadAddr(s string) {
 	DOWNADDR = s
 }
@@ -169,15 +179,6 @@ func GetConfig(user string, pwd string) (err error) {
 	return err
 }
 
-type Onevps struct {
-	Host             string
-	Pwd              string
-	Location         string
-	Tag              string
-	ConnectedQuality time.Duration
-	IDS              gs.List[string]
-}
-
 func (o *Onevps) Println() {
 	w := gs.Str("tag:%s ").F(o.Tag).Color("b", "B") + gs.Str("host: %s ").F(o.Host).Color("g") + gs.Str("loc: "+o.Location).Color("m", "B")
 	w.Println()
@@ -227,7 +228,10 @@ func (o *Onevps) Update() {
 }
 
 func (o *Onevps) Test() time.Duration {
-	o.ConnectedQuality, o.IDS = servercontroll.TestServer(o.Host)
+	var IDS gs.List[string]
+	o.ConnectedQuality, IDS = servercontroll.TestServer(o.Host)
+	o.IDS = IDS.Count()
+	o.Speed = o.ConnectedQuality.String()
 	return o.ConnectedQuality
 }
 
@@ -468,7 +472,7 @@ func TestRoutes(vpss gs.List[*Onevps]) (sorted gs.List[*Onevps]) {
 	})
 	waiter.Wait()
 	return vpss.Sort(func(l, r *Onevps) bool {
-		return l.ConnectedQuality > r.ConnectedQuality
+		return l.ConnectedQuality < r.ConnectedQuality
 	})
 }
 

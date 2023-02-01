@@ -12,7 +12,7 @@
         .left-section {
             display: flex;
             float: left;
-            width: 36%;
+            width: 30%;
             flex-flow: wrap;
 
             padding: 10px;
@@ -27,7 +27,7 @@
             
             float: right;
             min-width: 4in;
-            width:50%;
+            width:65%;
             /* max-width: 20in; */
             min-height: 95vh;
             background-color: lightgray;
@@ -158,32 +158,29 @@
         }
 
         
-        
-
-        
 
     </style>
 </head>
 <body>
     <div class="left-section" id="ready-area">
         
-        {{ range $no, $onevps := . }}
-        <div id="host-{{$no}}" host="{{$onevps.Host}}" class="route" draggable="true"  ondragstart="drag(event)" >
-            <div class="host">{{$onevps.Host}}</div></br>
-            已链接数: <i>{{len($onevps.IDS)}}</i></br>
-            链接速度: <i>{{$onevps.ConnectedQuality}}</i></br>
-            配置入口: <addres>{{$onevps.Location}}</addres>
-            <button class="start-btn" onclick="return Go('{{$onevps.Host}}')">Go</button>
+        {{ range $no, $H := . }}
+        <div id="host-{{$no}}" host="{{$H.Host}}" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">{{$H.Host}}</div></br>
+            已链接数: <i class="link">{{ $H.IDS }}</i></br>
+            链接速度: <i class="speed">{{ $H.Speed }}</i></br>
+            配置入口: <addres class="in">{{ $H.Location }}</addres>
+            <button class="start-btn" onclick="return Go('{{ $H.Host }}')">Go</button>
         </div>
         {{ end }}
     
-        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+        <!-- <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
             <div class="host">123.4.5.6</div></br>
             已链接数: <i>23</i></br>
             到达时间: <i>123.12412ms</i></br>
             配置入口:<addres>Location</addres></br>
             <button class="start-btn">Go</button>
-        </div> 
+        </div>  -->
    
       </div>
 
@@ -270,12 +267,21 @@ function Go(host){
             op:"switch",
             host:host,
         })
-    }).then(res => {
-        let d = JSON.parse(res);
-        if (d.status == "ok"){
-            SetHostRunningByHost(d.msg);
-        }else{
-            alert(d.msg);
+    }).then((response) => {
+        try{
+            return response.json()
+        } catch{
+            return null
+        }
+        
+    }).then(d=>{
+        if (d != null){
+            if (d.status == "ok"){
+                SetHostRunningByHost(d.msg);
+            }else{
+                // alert(d.msg);
+            }
+
         }
     });
 
@@ -288,8 +294,7 @@ function Check(){
         body: JSON.stringify({
             op:"check",
         })
-    }).then(res => {
-        let d = json.parse(res);
+    }).then((response) => response.json()).then(d=>{
         if (d.status == "ok"){
             if (d.msg != null && d.msg != ""){
                 SetHostRunningByHost(d.msg);
@@ -299,8 +304,42 @@ function Check(){
     })
 }
 
+function Test(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"test",
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            // console.log(d.msg);
+            if (d.msg != null && d.msg.length > 0){
+                d.msg.forEach(onevps => {
+                    let host =  document.querySelector(`div[host="${onevps.Host}"]`);
+                    if (host != null ){
+                        host.getElementsByClassName("speed")[0].textContent = onevps.Speed;
+                        host.getElementsByClassName("link")[0].textContent = onevps.IDS;
+                        host.getElementsByClassName("in")[0].textContent = onevps.Location;
+                    }
+                });
+            }
+            
+        }
+    })
+}
+
 function SetHostRunningByHost(host){
-    let hostDiv =  document.querySelector(`div[host='${d.running}']`);
+    let hostDiv =  document.querySelector(`div[host='${host}']`);
     if (hostDiv != null){
         let RunningArea = document.getElementById("running-area");
         let childN = RunningArea.childNodes[1];
@@ -315,7 +354,7 @@ function SetHostRunningByHost(host){
         hostDiv.classList.add("used-route");
         let subE = hostDiv.getElementsByTagName("button");
         subE[0].textContent = "";
-        Running.appendChild(hostDiv);
+        RunningArea.appendChild(hostDiv);
     }
 }
 
@@ -335,10 +374,18 @@ function SetHostRunningByID(id){
         hostDiv.classList.add("used-route");
         let subE = hostDiv.getElementsByTagName("button");
         subE[0].textContent = "";
-        Running.appendChild(hostDiv);
+        RunningArea.appendChild(hostDiv);
     }
 }
 
+
+setInterval(_=>{
+    Check();
+}, 1000);
+
+setInterval(_=>{
+    Test();
+}, 3000);
 
     </script>
 </body>

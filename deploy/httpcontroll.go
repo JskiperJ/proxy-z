@@ -38,6 +38,7 @@ func LoadPage(name string, data any) []byte {
 	text := string(buf)
 	buffer := bytes.NewBuffer([]byte{})
 	t, _ := template.New(name).Parse(text)
+	// gs.S(data).Println()
 	t.Execute(buffer, data)
 	return buffer.Bytes()
 }
@@ -51,7 +52,7 @@ func localSetupHandler() http.Handler {
 			select {
 			case <-inter.C:
 				if globalClient.Routes.Count() > 0 {
-					TestRoutes(globalClient.Routes)
+					globalClient.Routes = TestRoutes(globalClient.Routes)
 				}
 
 			default:
@@ -62,44 +63,68 @@ func localSetupHandler() http.Handler {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
+
 			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
+
+			return
 		}
+
 		if r.Method == "GET" {
+			// globalClient.Routes.Every(func(no int, i *Onevps) {
+			// 	i.Println()
+			// })
 			w.Write(LoadPage("route.html", globalClient.Routes))
+			return
 		}
 	})
 
 	mux.HandleFunc("/z-login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-
 			w.Write(LoadPage("login.html", nil))
 		} else {
-			r.ParseForm()
-			user := r.FormValue("name")
-			pwd := r.FormValue("pwd")
-			// gs.Str(name + ":" + pwd).Println()
-			if vpss := GitGetAccount("https://"+string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022")), user, pwd); vpss.Count() > 0 {
+			// fmt.Println(r.Body)
+			d, err := Recv(r.Body)
+			if err != nil {
+				w.WriteHeader(400)
+				Reply(w, err, false)
+				return
+			}
+			user := d["name"]
+			pwd := d["password"]
+			// gs.Str(user + ":" + pwd).Println()
+			if vpss := GitGetAccount("https://"+string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022")), user.(string), pwd.(string)); vpss.Count() > 0 {
 				globalClient.Routes = vpss
-				http.Redirect(w, r, "/", http.StatusSeeOther)
+				gs.Str("start test route").Println("login")
+				go TestRoutes(globalClient.Routes)
+				Reply(w, "", true)
+				return
+			} else {
+				w.WriteHeader(400)
+				Reply(w, "", false)
 			}
 		}
 	})
+
 	mux.HandleFunc("/z-api", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
 			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
+			return
 		}
-		if globalClient.ClientConf == nil {
-			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
-		}
+		// if globalClient.ClientConf == nil {
+		// 	http.Redirect(w, r, "/z-login", http.StatusSeeOther)
+		// 	return
+		// }
 		d, err := Recv(r.Body)
 		if err != nil {
 			w.WriteHeader(400)
 			Reply(w, err, false)
+			return
 		}
 		if d == nil {
 			Reply(w, "alive", true)
 			return
 		}
+		// gs.S(d).Println("API")
 		if op, ok := d["op"]; ok {
 			switch op {
 			case "connect":
@@ -114,12 +139,15 @@ func localSetupHandler() http.Handler {
 						return
 					}
 				}
+
 			case "switch":
 				if host, ok := d["host"]; ok && host != nil {
+					gs.Str(host.(string)).Color("g", "B").Println("Swtich")
 					if globalClient.ClientConf == nil {
 						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), 3080)
 						go globalClient.ClientConf.Socks5Listen()
 					} else {
+						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
 						globalClient.ClientConf.TryClose()
 						go globalClient.ClientConf.ChangeRoute(host.(string))
 					}
@@ -127,10 +155,17 @@ func localSetupHandler() http.Handler {
 				} else {
 					Reply(w, "no host", false)
 				}
+				return
 			case "check":
-				Reply(w, globalClient.ClientConf.GetRoute(), true)
+				if globalClient.ClientConf != nil {
+					Reply(w, globalClient.ClientConf.GetRoute(), true)
+				} else {
+					Reply(w, "err", false)
+				}
+				return
 			case "test":
 				Reply(w, globalClient.Routes, true)
+				return
 
 			}
 		}
@@ -144,17 +179,20 @@ func localSetupHandler() http.Handler {
 func LocalAPI() {
 	server := &http.Server{
 		Handler: localSetupHandler(),
-		Addr:    "0.0.0.0:55555",
+		Addr:    "0.0.0.0:35555",
 	}
 	go func() {
 		time.Sleep(2 * time.Second)
 		if runtime.GOOS == "windows" {
-			gs.Str("start http://localhost:55555/").Exec()
+			gs.Str("start http://localhost:35555/").Exec()
 		} else if runtime.GOOS == "darwin" {
-			gs.Str("open http://localhost:55555/").Exec()
+			gs.Str("open http://localhost:35555/").Exec()
 		}
 	}()
-	server.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != nil {
+		gs.Str(err.Error()).Color("r").Println("Err")
+	}
 }
 
 func Reply(w io.Writer, msg any, status bool) {
@@ -181,7 +219,8 @@ func Recv(r io.Reader) (d gs.Dict[any], err error) {
 	if len(buf) == 0 {
 		return nil, nil
 	}
-	if d := gs.S(buf).Json(); len(d) > 0 {
+	// fmt.Println(gs.S(buf))
+	if d := gs.Str(buf).Json(); len(d) > 0 {
 		return d, nil
 	}
 	return nil, nil
