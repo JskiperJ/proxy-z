@@ -47,7 +47,7 @@ func localSetupHandler() http.Handler {
 	mux := http.NewServeMux()
 
 	go func() {
-		inter := time.NewTicker(1 * time.Minute)
+		inter := time.NewTicker(10 * time.Minute)
 		for {
 			select {
 			case <-inter.C:

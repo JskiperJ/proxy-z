@@ -269,6 +269,12 @@ func (c *ClientControl) Socks5Listen() (err error) {
 						gs.Str(err.Error()).Println("connect proxy server err")
 						return
 					}
+					if remotecon == nil {
+						if socks5con != nil {
+							socks5con.Close()
+						}
+						return
+					}
 					defer remotecon.Close()
 					_, err = remotecon.Write(raw)
 					if err != nil {
