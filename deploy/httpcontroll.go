@@ -181,7 +181,7 @@ func LocalAPI(openbrowser bool) {
 		Handler: localSetupHandler(),
 		Addr:    "0.0.0.0:35555",
 	}
-	if openbrowser {
+	if !openbrowser {
 		go func() {
 			time.Sleep(2 * time.Second)
 			if runtime.GOOS == "windows" {
