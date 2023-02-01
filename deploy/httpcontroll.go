@@ -176,19 +176,21 @@ func localSetupHandler() http.Handler {
 
 }
 
-func LocalAPI() {
+func LocalAPI(openbrowser bool) {
 	server := &http.Server{
 		Handler: localSetupHandler(),
 		Addr:    "0.0.0.0:35555",
 	}
-	go func() {
-		time.Sleep(2 * time.Second)
-		if runtime.GOOS == "windows" {
-			gs.Str("start http://localhost:35555/").Exec()
-		} else if runtime.GOOS == "darwin" {
-			gs.Str("open http://localhost:35555/").Exec()
-		}
-	}()
+	if openbrowser {
+		go func() {
+			time.Sleep(2 * time.Second)
+			if runtime.GOOS == "windows" {
+				gs.Str("start http://localhost:35555/").Exec()
+			} else if runtime.GOOS == "darwin" {
+				gs.Str("open http://localhost:35555/").Exec()
+			}
+		}()
+	}
 	err := server.ListenAndServe()
 	if err != nil {
 		gs.Str(err.Error()).Color("r").Println("Err")

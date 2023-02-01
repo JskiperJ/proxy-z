@@ -19,6 +19,7 @@ func main() {
 	gitmode := false
 	daemon := false
 	httpmode := false
+	noopenbrowser := false
 	// cli := false
 	// configbuild := false
 	l := 1080
@@ -30,6 +31,7 @@ func main() {
 	flag.BoolVar(&vultrmode, "vultr", false, "true to use vultr api to search host")
 	flag.BoolVar(&gitmode, "git", false, "true to use git to login group proxy")
 	flag.BoolVar(&httpmode, "http", false, "true to use http mode")
+	flag.BoolVar(&noopenbrowser, "no-open", false, "true not open browser")
 	flag.BoolVar(&daemon, "d", false, "true to run deamon")
 	// flag.BoolVar(&cli, "cli", false, "true to use cli-client")
 	// flag.BoolVar(&configbuild, "", false, "true to use vultr api to build host group")
@@ -75,7 +77,7 @@ func main() {
 		clientcontroll.RunLocal(server, l)
 	}
 	if httpmode {
-		deploy.LocalAPI()
+		deploy.LocalAPI(noopenbrowser)
 	}
 
 }
