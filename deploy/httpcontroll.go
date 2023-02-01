@@ -20,6 +20,7 @@ type ClientInterface interface {
 	ChangeRoute(string)
 	Socks5Listen() error
 	ChangePort(int)
+	GetRoute() string
 }
 
 type HTTPAPIConfig struct {
@@ -43,6 +44,21 @@ func LoadPage(name string, data any) []byte {
 
 func localSetupHandler() http.Handler {
 	mux := http.NewServeMux()
+
+	go func() {
+		inter := time.NewTicker(1 * time.Minute)
+		for {
+			select {
+			case <-inter.C:
+				if globalClient.Routes.Count() > 0 {
+					TestRoutes(globalClient.Routes)
+				}
+
+			default:
+				time.Sleep(12 * time.Second)
+			}
+		}
+	}()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
@@ -70,6 +86,9 @@ func localSetupHandler() http.Handler {
 	})
 	mux.HandleFunc("/z-api", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
+			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
+		}
+		if globalClient.ClientConf == nil {
 			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
 		}
 		d, err := Recv(r.Body)
@@ -108,6 +127,11 @@ func localSetupHandler() http.Handler {
 				} else {
 					Reply(w, "no host", false)
 				}
+			case "check":
+				Reply(w, globalClient.ClientConf.GetRoute(), true)
+			case "test":
+				Reply(w, globalClient.Routes, true)
+
 			}
 		}
 		Reply(w, "err", false)

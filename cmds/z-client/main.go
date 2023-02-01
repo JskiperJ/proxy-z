@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/clientcontroll"
 	"gitee.com/dark.H/ProxyZ/deploy"
@@ -16,6 +17,8 @@ func main() {
 	update := false
 	vultrmode := false
 	gitmode := false
+	daemon := false
+	httpmode := false
 	// cli := false
 	// configbuild := false
 	l := 1080
@@ -26,6 +29,8 @@ func main() {
 	flag.BoolVar(&update, "update", false, "set this server update by git")
 	flag.BoolVar(&vultrmode, "vultr", false, "true to use vultr api to search host")
 	flag.BoolVar(&gitmode, "git", false, "true to use git to login group proxy")
+	flag.BoolVar(&httpmode, "http", false, "true to use http mode")
+	flag.BoolVar(&daemon, "d", false, "true to run deamon")
 	// flag.BoolVar(&cli, "cli", false, "true to use cli-client")
 	// flag.BoolVar(&configbuild, "", false, "true to use vultr api to build host group")
 
@@ -44,6 +49,21 @@ func main() {
 		os.Exit(0)
 	}
 
+	if daemon {
+		logFile := gs.TMP.PathJoin("z.log").Str()
+		args := []string{}
+		for _, a := range os.Args {
+			if a == "-d" {
+				continue
+			}
+			args = append(args, a)
+		}
+		deploy.Daemon(args, logFile)
+		time.Sleep(2 * time.Second)
+		gs.Str("%s run background | log: %s").F(os.Args[0], logFile).Println("Daemon")
+		os.Exit(0)
+	}
+
 	if gitmode {
 		if !gs.Str(server).StartsWith("https://git") {
 			server = "https://" + string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022"))
@@ -52,8 +72,10 @@ func main() {
 		if server == "" {
 			os.Exit(0)
 		}
+		clientcontroll.RunLocal(server, l)
 	}
-
-	clientcontroll.RunLocal(server, l)
+	if httpmode {
+		deploy.LocalAPI()
+	}
 
 }

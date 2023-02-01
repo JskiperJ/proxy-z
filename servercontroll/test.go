@@ -6,7 +6,7 @@ import (
 	"gitee.com/dark.H/gs"
 )
 
-func TestServer(server string) time.Duration {
+func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 	st := time.Now()
 	ok := true
 	f := ""
@@ -19,19 +19,24 @@ func TestServer(server string) time.Duration {
 		f = "https://" + gs.Str(server).Str()
 	}
 
-	HTTPSGet(f + "/z-info").Json().Every(func(k string, v any) {
+	HTTPSGet(f + "/proxy-info").Json().Every(func(k string, v any) {
 		if k == "status" {
 			// gs.S(v).Color("g").Println(server)
 			if v != "ok" {
 				gs.Str("server is not alive !").Color("r").Println()
 				ok = false
 			}
+		} else if k == "ids" {
+			idsS := v.([]any)
+			for _, i := range idsS {
+				IDS = IDS.Add(i.(string))
+			}
 		}
 	})
 	if !ok {
-		return time.Duration(30000) * time.Hour
+		return time.Duration(30000) * time.Hour, IDS
 	}
-	return time.Since(st)
+	return time.Since(st), IDS
 }
 
 func SendUpdate(server string) {

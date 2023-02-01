@@ -35,11 +35,11 @@
         }
         
         .route{
+            
             background-color: white;
-            /* display: baddressk; */
             margin: 1px;
             margin-top: 1cm;
-            height: 1.1in;
+            height: 1.3in;
             min-width: 200px;
             margin-left: 20px;
             max-width: 1in;
@@ -54,10 +54,9 @@
         .used-route{
             z-index: 4;
             background-color: white;
-            /* display: baddressk; */
             margin: 1px;
             margin-top: 1cm;
-            height: 1.1in;
+            height: 1.3in;
             min-width: 200px;
             margin-left: 20px;
             max-width: 1in;
@@ -169,28 +168,28 @@
     <div class="left-section" id="ready-area">
         
         {{ range $no, $onevps := . }}
-        <div id="host-{{$no}}" class="route" draggable="true"  ondragstart="drag(event)" >
-            <div class="host">{{$onevps.Host}}</div>
-            </br>
-            TTL: <i>{{$onevps.ConnectedQuality}}</i></br>
-            LOC: <addres>{{$onevps.Location}}</addres>
-            <button class="start-btn" onclick="return Go('{{$onevps.Host}}','host-{{$no}}')">Go</button>
+        <div id="host-{{$no}}" host="{{$onevps.Host}}" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">{{$onevps.Host}}</div></br>
+            已链接数: <i>{{len($onevps.IDS)}}</i></br>
+            链接速度: <i>{{$onevps.ConnectedQuality}}</i></br>
+            配置入口: <addres>{{$onevps.Location}}</addres>
+            <button class="start-btn" onclick="return Go('{{$onevps.Host}}')">Go</button>
         </div>
         {{ end }}
-        <!-- <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
-            <div class="host">123.4.5.6</div>
-            </br>
-            TTL: <i>123.12412ms</i>
-            </br>
-            LOc:<addres>Location</addres>
-            </br>
+    
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div></br>
+            已链接数: <i>23</i></br>
+            到达时间: <i>123.12412ms</i></br>
+            配置入口:<addres>Location</addres></br>
             <button class="start-btn">Go</button>
-        </div> -->
+        </div> 
+   
       </div>
 
       <div class="right-section">
-        <h1 id="area-title">
-            Can Drag left <u style="color: brown;">block</u>  to here! to <i style="color: darkgreen;">Running</i> 
+        <h1 id="area-title" style="padding: 0.2in;">
+        </br>可以把</br><u style="color: brown;"> 左边的代理模块</u>  拖到这里 <i style="color: darkgreen;">开始运行</i> 
         </h1>
         <div class="running-area" id="running-area">
             
@@ -201,18 +200,18 @@
     <script>
 
 function allowDrop(ev) {
-  ev.preventDefault();
+    ev.preventDefault();
 }
 
 function drag(ev) {
     console.log(ev.target);
-  ev.dataTransfer.setData("text", ev.target.id);
+    ev.dataTransfer.setData("text", ev.target.id);
 }
 
 function drop(ev) {
-  ev.preventDefault();
-  var data = ev.dataTransfer.getData("text");
-  ev.target.appendChild(document.getElementById(data));
+    ev.preventDefault();
+    var data = ev.dataTransfer.getData("text");
+    ev.target.appendChild(document.getElementById(data));
 }
 
 const droppableDiv = document.getElementById("running-area");
@@ -221,47 +220,49 @@ droppableDiv.addEventListener("dragover", function(event) {
 });
 
 droppableDiv.addEventListener("drop", function(event) {
-  event.preventDefault();
+    event.preventDefault();
 
-  const childN = event.target.childNodes[1];
-  if (childN != null && childN.classList[0] == "used-route"){
-    childN.classList.remove("used-route");
-    childN.classList.add("route");
-    document.getElementById("ready-area").prepend(childN);
-  }
-  
-  const data = event.dataTransfer.getData("text");
-  let movedE = document.getElementById(data);
-  movedE.classList.remove("route");
-  movedE.classList.add("used-route");
-  let subE = movedE.getElementsByTagName("button");
-  subE[0].textContent = "stop";
-  event.target.appendChild(movedE);
-//   droppableDiv.classList.remove("run");
-//   droppableDiv.classList.add("run");
+    const childN = event.target.childNodes[1];
+    if (childN != null && childN.classList[0] == "used-route"){
+        childN.classList.remove("used-route");
+        childN.classList.add("route");
+        document.getElementById("ready-area").prepend(childN);
+        childN.getElementsByTagName("button")[0].textContent = "Go";
+    }
+
+    const data = event.dataTransfer.getData("text");
+    let movedE = document.getElementById(data);
+    movedE.classList.remove("route");
+    movedE.classList.add("used-route");
+    let subE = movedE.getElementsByTagName("button");
+    subE[0].textContent = "";
+    event.target.appendChild(movedE);
+    Go(movedE.getAttribute("host").trim())
+
 });
 
 const backReady = document.getElementById("ready-area");
 backReady.addEventListener("dragover", function(event) {
-  event.preventDefault();
+    event.preventDefault();
 });
+
 backReady.addEventListener("drop", function(event) {
-  event.preventDefault();
-  const data = event.dataTransfer.getData("text");
-  let movedE = document.getElementById(data);
-  movedE.classList.remove("used-route");
-  movedE.classList.add("route");
-  let subE = movedE.getElementsByTagName("button");
-  subE[0].textContent = "Go";
-  event.target.appendChild(movedE);
-  const childN = droppableDiv.childNodes[1];
-  if (childN == null){
-    droppableDiv.classList.remove("run");
-  }
+    event.preventDefault();
+    const data = event.dataTransfer.getData("text");
+    let movedE = document.getElementById(data);
+    movedE.classList.remove("used-route");
+    movedE.classList.add("route");
+    let subE = movedE.getElementsByTagName("button");
+    subE[0].textContent = "Go";
+    event.target.appendChild(movedE);
+    const childN = droppableDiv.childNodes[1];
+    if (childN == null){
+        droppableDiv.classList.remove("run");
+    }
 });
 
 
-function Go(host, id){
+function Go(host){
     fetch("/z-api", {
         method: "POST",
         headers: {'Content-Type': 'application/json'}, 
@@ -272,27 +273,72 @@ function Go(host, id){
     }).then(res => {
         let d = JSON.parse(res);
         if (d.status == "ok"){
-            let movedE = document.getElementById(id);
-            if (moveE != null){
-                let Running = document.getElementById("running-area");
-                let childN = Running.childNodes[1];
-                if (childN != null && childN.classList[0] == "used-route"){
-                    childN.classList.remove("used-route");
-                    childN.classList.add("route");
-                    document.getElementById("ready-area").prepend(childN);
-                }
-                movedE.classList.remove("route");
-                movedE.classList.add("used-route");
-                let subE = movedE.getElementsByTagName("button");
-                subE[0].textContent = "stop";
-                Running.appendChild(movedE);
-            }
+            SetHostRunningByHost(d.msg);
         }else{
             alert(d.msg);
         }
     });
 
 }
+
+function Check(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"check",
+        })
+    }).then(res => {
+        let d = json.parse(res);
+        if (d.status == "ok"){
+            if (d.msg != null && d.msg != ""){
+                SetHostRunningByHost(d.msg);
+            }
+            
+        }
+    })
+}
+
+function SetHostRunningByHost(host){
+    let hostDiv =  document.querySelector(`div[host='${d.running}']`);
+    if (hostDiv != null){
+        let RunningArea = document.getElementById("running-area");
+        let childN = RunningArea.childNodes[1];
+        if (childN != null && childN.classList[0] == "used-route"){
+            childN.classList.remove("used-route");
+            childN.classList.add("route");
+            childN.getElementsByTagName("button")[0].textContent = "Go";
+            document.getElementById("ready-area").prepend(childN);
+        }
+
+        hostDiv.classList.remove("route");
+        hostDiv.classList.add("used-route");
+        let subE = hostDiv.getElementsByTagName("button");
+        subE[0].textContent = "";
+        Running.appendChild(hostDiv);
+    }
+}
+
+function SetHostRunningByID(id){
+    let hostDiv =  document.querySelector(`div#${id}`);
+    if (hostDiv != null){
+        let RunningArea = document.getElementById("running-area");
+        let childN = RunningArea.childNodes[1];
+        if (childN != null && childN.classList[0] == "used-route"){
+            childN.classList.remove("used-route");
+            childN.classList.add("route");
+            childN.getElementsByTagName("button")[0].textContent = "Go";
+            document.getElementById("ready-area").prepend(childN);
+        }
+
+        hostDiv.classList.remove("route");
+        hostDiv.classList.add("used-route");
+        let subE = hostDiv.getElementsByTagName("button");
+        subE[0].textContent = "";
+        Running.appendChild(hostDiv);
+    }
+}
+
 
     </script>
 </body>

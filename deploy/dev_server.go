@@ -175,6 +175,7 @@ type Onevps struct {
 	Location         string
 	Tag              string
 	ConnectedQuality time.Duration
+	IDS              gs.List[string]
 }
 
 func (o *Onevps) Println() {
@@ -226,7 +227,7 @@ func (o *Onevps) Update() {
 }
 
 func (o *Onevps) Test() time.Duration {
-	o.ConnectedQuality = servercontroll.TestServer(o.Host)
+	o.ConnectedQuality, o.IDS = servercontroll.TestServer(o.Host)
 	return o.ConnectedQuality
 }
 

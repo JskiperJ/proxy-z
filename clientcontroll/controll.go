@@ -27,7 +27,7 @@ var (
 
 func RunLocal(server string, l int) {
 
-	if r := servercontroll.TestServer(server); r > time.Minute {
+	if r, _ := servercontroll.TestServer(server); r > time.Minute {
 		os.Exit(0)
 		return
 	} else {
@@ -87,6 +87,17 @@ func RecvMsg(reply gs.Str) (di any, o bool) {
 
 func (c *ClientControl) TryClose() {
 	c.closeFlag = true
+}
+
+func (c *ClientControl) GetRoute() string {
+	e := c.Addr
+	if e.In("://") {
+		e = e.Split("://")[1]
+	}
+	if e.In(":") {
+		e = e.Split(":")[0]
+	}
+	return e.Str()
 }
 
 func (c *ClientControl) ChangeRoute(host string) {
