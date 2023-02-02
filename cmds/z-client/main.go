@@ -24,7 +24,7 @@ func main() {
 	// configbuild := false
 	l := 1080
 	flag.StringVar(&server, "H", "https://localhost:55443", "set server addr/set ssh name / set some other ")
-	flag.IntVar(&l, "l", 3080, "set local socks5 listen port")
+	flag.IntVar(&l, "l", 1091, "set local socks5 listen port")
 
 	flag.BoolVar(&dev, "dev", false, "use ssh to devploy proxy server ; example -H 'user@host:port/pwd' -dev ")
 	flag.BoolVar(&update, "update", false, "set this server update by git")
