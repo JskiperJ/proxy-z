@@ -319,7 +319,7 @@ func GetSSServerRequest(conn net.Conn) (host string, raw []byte, isUdp bool, err
 	buf := make([]byte, 260)
 	// fmt.Println("GetSSServerRequest ReadFull")
 	if _, err = io.ReadFull(conn, buf[:2]); err != nil {
-		gs.Str("server request1 err:" + err.Error()).Color("g").Println("baseconnection err")
+		gs.Str("server request1 err:" + err.Error()).Color("g").Println("base err")
 		return
 	}
 

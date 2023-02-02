@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/gs"
 	"github.com/xtaci/kcp-go"
 	"github.com/xtaci/smux"
@@ -54,7 +54,7 @@ func newChannel(stream net.Conn, host string) Channel {
 
 // KcpServer used for server
 type KcpServer struct {
-	config *baseconnection.ProtocolConfig
+	config *base.ProtocolConfig
 	// RedirectMode  bool
 	// TunnelChan     chan Channel
 	// TcpListenPorts map[string]int
@@ -106,11 +106,11 @@ func (ksever *KcpServer) GetListener() net.Listener {
 
 }
 
-func (kserver *KcpServer) GetConfig() *baseconnection.ProtocolConfig {
+func (kserver *KcpServer) GetConfig() *base.ProtocolConfig {
 	return kserver.config
 }
 
-func NewKcpServer(config *baseconnection.ProtocolConfig) *KcpServer {
+func NewKcpServer(config *base.ProtocolConfig) *KcpServer {
 	k := new(KcpServer)
 	config.ProxyType = "kcp"
 	config.Type = "fast"

@@ -4,12 +4,12 @@ import (
 	"crypto/sha1"
 	"net"
 
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 	"github.com/xtaci/kcp-go"
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func ConnectKcp(addr string, config *baseconnection.ProtocolConfig) (conn net.Conn, err error) {
+func ConnectKcp(addr string, config *base.ProtocolConfig) (conn net.Conn, err error) {
 	_key := config.Password
 	_salt := config.SALT
 	key := pbkdf2.Key([]byte(_key), []byte(_salt), 4096, 32, sha1.New)
@@ -26,7 +26,7 @@ func ConnectKcp(addr string, config *baseconnection.ProtocolConfig) (conn net.Co
 	return kcpconn, nil
 }
 
-func ConnectKcpFirstBuf(dst string, config *baseconnection.ProtocolConfig, firstbuf ...[]byte) (con net.Conn, reply []byte, err error) {
+func ConnectKcpFirstBuf(dst string, config *base.ProtocolConfig, firstbuf ...[]byte) (con net.Conn, reply []byte, err error) {
 	con, err = ConnectKcp(dst, config)
 
 	if firstbuf != nil {

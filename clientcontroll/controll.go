@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/connections/prokcp"
 	"gitee.com/dark.H/ProxyZ/connections/prosmux"
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
@@ -41,7 +41,7 @@ func RunLocal(server string, l int) {
 type ClientControl struct {
 	SmuxClients []*prosmux.SmuxConfig
 
-	nowconf    *baseconnection.ProtocolConfig
+	nowconf    *base.ProtocolConfig
 	ClientNum  int
 	ListenPort int
 	ErrCount   int
@@ -121,7 +121,7 @@ func (c *ClientControl) ChangePort(port int) {
 	c.ListenPort = port
 }
 
-func (c *ClientControl) ReportErrorProxy() (conf *baseconnection.ProtocolConfig) {
+func (c *ClientControl) ReportErrorProxy() (conf *base.ProtocolConfig) {
 
 	var addr string
 	useTls := false
@@ -157,7 +157,7 @@ func (c *ClientControl) ReportErrorProxy() (conf *baseconnection.ProtocolConfig)
 			gs.Str(err.Error()).Println("Err Tr")
 			return nil
 		}
-		conf = new(baseconnection.ProtocolConfig)
+		conf = new(base.ProtocolConfig)
 
 		if err := json.Unmarshal(buf, conf); err != nil {
 			gs.Str("get aviable proxy client err :" + err.Error()).Println("Err")
@@ -172,7 +172,7 @@ func (c *ClientControl) ReportErrorProxy() (conf *baseconnection.ProtocolConfig)
 	return
 }
 
-func (c *ClientControl) GetAviableProxy() (conf *baseconnection.ProtocolConfig) {
+func (c *ClientControl) GetAviableProxy() (conf *base.ProtocolConfig) {
 	if c.nowconf != nil {
 		return c.nowconf
 	}
@@ -206,7 +206,7 @@ func (c *ClientControl) GetAviableProxy() (conf *baseconnection.ProtocolConfig) 
 			gs.Str(err.Error()).Println("Err Tr")
 			return nil
 		}
-		conf = new(baseconnection.ProtocolConfig)
+		conf = new(base.ProtocolConfig)
 
 		if err := json.Unmarshal(buf, conf); err != nil {
 			gs.Str("get aviable proxy client err :" + err.Error()).Println("Err")
@@ -292,7 +292,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 					if err != nil {
 						gs.Str(err.Error()).Println("connecting read|" + host)
 						if err.Error() != "timeout" {
-							baseconnection.ErrToFile("err in client controll.go :160", err)
+							base.ErrToFile("err in client controll.go :160", err)
 						}
 
 						c.lock.Lock()
@@ -314,7 +314,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 						c.ErrCount -= 1
 					}
 					c.lock.Unlock()
-					gs.Str("[%s] %s").F("connecting|"+gs.S(c.AliveCount), host).Color("g").Add("\r").Print()
+					gs.Str("[%s] %s        ").F("connecting|"+gs.S(c.AliveCount), host).Color("g").Add("\r").Print()
 					remotecon.SetReadDeadline(time.Now().Add(30 * time.Minute))
 					c.Pipe(socks5con, remotecon)
 					socks5con.Close()
@@ -347,6 +347,9 @@ func (c *ClientControl) RebuildSmux(no int) (err error) {
 		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig.RemoteAddr(), proxyConfig)
 	default:
 		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig.RemoteAddr(), proxyConfig)
+	}
+	if err != nil {
+		return
 	}
 	// gs.Str("--> "+proxyConfig.RemoteAddr()).Color("y", "B").Println(proxyConfig.ProxyType)
 	if singleTunnelConn != nil {
@@ -416,11 +419,15 @@ func (c *ClientControl) InitializationTunnels() {
 			for {
 				err := c.RebuildSmux(no)
 				if err != nil {
-					gs.Str("rebuild smux err:" + err.Error()).Println("Err")
+					// gs.Str("rebuild smux err:" + err.Error()).Println("Err")
+					l.Lock()
+					msgs[no] = gs.Str('*').Color("y", "B")
+					l.Unlock()
+					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
 					// return nil, err
 				} else {
 					l.Lock()
-					msgs[no] = gs.Str('*').Color("g")
+					msgs[no] = gs.Str('*').Color("g", "B")
 					l.Unlock()
 					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
 					break
@@ -433,7 +440,7 @@ func (c *ClientControl) InitializationTunnels() {
 
 	wait.Wait()
 	time.Sleep(1 * time.Second)
-	gs.Str("\n").Print()
+	gs.Str("\n==                      %s :%d                       ==\n").Color("g").F("Connected Tunnel", c.ClientNum).Print()
 }
 
 func (c *ClientControl) ConnectRemote() (con net.Conn, err error) {

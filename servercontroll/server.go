@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"gitee.com/dark.H/ProxyZ/asset"
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 
 	"gitee.com/dark.H/gs"
 	"github.com/lucas-clemente/quic-go"
@@ -21,7 +21,7 @@ import (
 var (
 	CERT    = "Resources/pem/cert.pem"
 	KEYPEM  = "Resources/pem/key.pem"
-	Tunnels = gs.List[*baseconnection.ProxyTunnel]{}
+	Tunnels = gs.List[*base.ProxyTunnel]{}
 	GLOCK   = sync.RWMutex{}
 )
 
@@ -56,7 +56,7 @@ func Recv(r io.Reader) (d gs.Dict[any], err error) {
 }
 
 func HTTP3Server(serverAddr, wwwDir string, useQuic bool) {
-	baseconnection.OpenPortUFW(gs.Str(serverAddr).Split(":")[1].TryInt())
+	base.OpenPortUFW(gs.Str(serverAddr).Split(":")[1].TryInt())
 	quicConf := &quic.Config{}
 	handler := setupHandler(wwwDir)
 

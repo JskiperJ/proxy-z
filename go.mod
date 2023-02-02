@@ -11,6 +11,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/lucas-clemente/quic-go v0.31.1
 	github.com/pkg/errors v0.9.1
+	github.com/quic-go/quic-go v0.32.0
 	github.com/xtaci/kcp-go v4.3.4+incompatible
 	github.com/xtaci/smux v1.5.17
 	golang.org/x/crypto v0.4.0
@@ -42,6 +43,9 @@ require (
 	github.com/nsf/termbox-go v1.1.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.2.0 // indirect
 	github.com/pjbgf/sha1cd v0.2.3 // indirect
+	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
+	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
+	github.com/quic-go/qtls-go1-20 v0.1.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
@@ -51,17 +55,17 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.design/x/clipboard v0.6.3 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/exp/shiny v0.0.0-20230129154200-a960b3787bd2 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 	golang.org/x/mobile v0.0.0-20210716004757-34ab1303b554 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/mod v0.6.0 // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
-	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

@@ -1,0 +1,18 @@
+{
+  "name": "proxy-z-gui",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "proxy-z gui",
+  "author": "Hello World!",
+  "license": "GNUs",
+  "extraResources": [
+    {
+      "from": "z-client",
+      "to": "z-client"
+    },
+    {
+      "from": "z-client.exe",
+      "to": "z-client.exe"
+    }
+  ]
+}

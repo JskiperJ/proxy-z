@@ -3,6 +3,7 @@ proxy-z
 cmds/z-client/z-client
 cmds/z-client/node_modules
 cmds/z-client/out
+cmds/z-client/package.json
 cmds/z-client/package-lock.json
 cmds/z-debug/z-debug
 cmds/z-server/z-server

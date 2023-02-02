@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/update"
 	"gitee.com/dark.H/gs"
 )
@@ -42,7 +42,7 @@ func setupHandler(www string) http.Handler {
 	})
 	mux.HandleFunc("/proxy-info", func(w http.ResponseWriter, r *http.Request) {
 		ids := []string{}
-		Tunnels.Every(func(no int, i *baseconnection.ProxyTunnel) {
+		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
 			ids = append(ids, i.GetConfig().ID)
 		})
 		Reply(w, gs.Dict[[]string]{
@@ -70,7 +70,7 @@ func setupHandler(www string) http.Handler {
 	})
 	mux.HandleFunc("/04__close-all", func(w http.ResponseWriter, r *http.Request) {
 		ids := gs.List[string]{}
-		Tunnels.Every(func(no int, i *baseconnection.ProxyTunnel) {
+		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
 			ids = append(ids, i.GetConfig().ID)
 		})
 
@@ -84,7 +84,7 @@ func setupHandler(www string) http.Handler {
 
 	mux.HandleFunc("/z11-update", func(w http.ResponseWriter, r *http.Request) {
 		ids := gs.List[string]{}
-		Tunnels.Every(func(no int, i *baseconnection.ProxyTunnel) {
+		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
 			ids = append(ids, i.GetConfig().ID)
 		})
 

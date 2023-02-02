@@ -31,6 +31,7 @@ type HTTPAPIConfig struct {
 
 var (
 	globalClient = &HTTPAPIConfig{}
+	LOCAL_PORT   = 1091
 )
 
 func LoadPage(name string, data any) []byte {
@@ -144,7 +145,7 @@ func localSetupHandler() http.Handler {
 				if host, ok := d["host"]; ok && host != nil {
 					gs.Str(host.(string)).Color("g", "B").Println("Swtich")
 					if globalClient.ClientConf == nil {
-						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), 3080)
+						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), LOCAL_PORT)
 						go globalClient.ClientConf.Socks5Listen()
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")

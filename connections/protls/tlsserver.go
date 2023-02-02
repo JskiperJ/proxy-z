@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"gitee.com/dark.H/ProxyZ/asset"
-	"gitee.com/dark.H/ProxyZ/connections/baseconnection"
+	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/gs"
 )
 
@@ -21,7 +21,7 @@ var (
 
 // KcpServer used for server
 type TlsServer struct {
-	config    *baseconnection.ProtocolConfig
+	config    *base.ProtocolConfig
 	tlsconfig *tls.Config
 	// RedirectMode  bool
 	// TunnelChan     chan Channel
@@ -88,11 +88,11 @@ func (tlsserver *TlsServer) GetListener() net.Listener {
 	return listenr
 }
 
-func (kserver *TlsServer) GetConfig() *baseconnection.ProtocolConfig {
+func (kserver *TlsServer) GetConfig() *base.ProtocolConfig {
 	return kserver.config
 }
 
-func NewTlsServer(config *baseconnection.ProtocolConfig) *TlsServer {
+func NewTlsServer(config *base.ProtocolConfig) *TlsServer {
 	k := new(TlsServer)
 
 	k.tlsconfig = GetTlsConfig()
