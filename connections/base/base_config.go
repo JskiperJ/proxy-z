@@ -147,7 +147,7 @@ func (config *ProtocolConfig) GetQuicConfig() (conf *tls.Config, ok bool) {
 	return
 }
 
-// GetServerArray get server
+// GetServerArray get serverfdf
 func (config *ProtocolConfig) GetServerArray() []string {
 	// Specifying multiple servers in the "server" options is deprecated.
 	// But for backward compatibility, keep this.
