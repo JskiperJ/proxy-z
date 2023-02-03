@@ -17,7 +17,6 @@ func ConnectKcp(config *base.ProtocolConfig) (conn net.Conn, err error) {
 	DataShard := 10
 	ParityShard := 3
 	addr := config.RemoteAddr()
-	// gs.Str("key:%s | salt: %s | ds:%d | pd: %d | mode:%s ").F(_key, _salt, DataShard, ParityShard, config.Type).Println("kcp config")
 	kcpconn, err := kcp.DialWithOptions(addr, block, DataShard, ParityShard)
 
 	if err != nil {

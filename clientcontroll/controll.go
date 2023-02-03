@@ -55,6 +55,7 @@ type ClientControl struct {
 	AliveCount int
 	lastUse    int
 	lock       sync.RWMutex
+	islocked   bool
 	Addr       gs.Str
 	stdout     io.WriteCloser
 	closed     bool
@@ -287,10 +288,11 @@ func (c *ClientControl) Socks5Listen() (err error) {
 					return
 				}
 				if gs.Str(host).StartsWith("c://") {
-					c.ControllCode(host)
-					c.SetOutFile(socks5con)
+
+					// c.SetOutFile(socks5con)
 					socks5con.Write([]byte("END Controll :" + host))
-					c.CloseWriter()
+					// c.CloseWriter()
+					c.ControllCode(host)
 					return
 				}
 				for tryTime := 0; tryTime < 3; tryTime += 1 {
@@ -301,6 +303,9 @@ func (c *ClientControl) Socks5Listen() (err error) {
 						c.ErrCount += 1
 						c.lock.Unlock()
 						continue
+					}
+					if remotecon == nil {
+						log.Fatal("!!???@@ASFASGFS")
 					}
 
 					defer remotecon.Close()
@@ -366,19 +371,21 @@ func (c *ClientControl) Socks5Listen() (err error) {
 }
 
 func (c *ClientControl) ChangeProxyType(tp string) {
-	c.lock.Lock()
+	// c.lock.Lock()
+	// c.islocked = true
 	c.nowconf = nil
 	c.GetAviableProxy(tp)
 	gs.Str("Change Proxy Type :"+tp).Color("y", "B").Println("Change Proxy")
-	old := c.ClientNum
-	if c.nowconf.ProxyType == "quic" {
-		c.ClientNum = 5
-	}
+	// old := c.ClientNum
+	// if c.nowconf.ProxyType == "quic" {
+	// 	c.ClientNum = 5
+	// }
 	c.InitializationTunnels()
-	if c.nowconf.ProxyType == "quic" {
-		c.ClientNum = old
-	}
-	c.lock.Unlock()
+	// if c.nowconf.ProxyType == "quic" {
+	// 	c.ClientNum = old
+	// }
+	// c.islocked = false
+	// c.lock.Unlock()
 
 }
 
@@ -397,6 +404,7 @@ func (c *ClientControl) RebuildSmux(no int) (err error) {
 		return ErrRouteISBreak
 	}
 	var singleTunnelConn net.Conn
+
 	switch proxyConfig.ProxyType {
 	case "tls":
 		singleTunnelConn, err = protls.ConnectTls(proxyConfig)
@@ -417,21 +425,36 @@ func (c *ClientControl) RebuildSmux(no int) (err error) {
 			c.SmuxClients = append(c.SmuxClients, prosmux.NewSmuxClient(singleTunnelConn))
 		} else {
 			c.lock.Lock()
+
 			c.SmuxClients[no].Close()
 			c.SmuxClients[no] = nil
 			c.SmuxClients[no] = prosmux.NewSmuxClient(singleTunnelConn)
+
 			c.lock.Unlock()
+
 		}
 	} else if proxyConfig.ProxyType == "quic" {
+		// gs.Str("test Enter be").Println(proxyConfig.ProxyType)
 		if len(c.SmuxClients) <= no {
 
-			c.SmuxClients = append(c.SmuxClients, proquic.NewQuicClient(proxyConfig))
+			qc, err := proquic.NewQuicClient(proxyConfig)
+			if err != nil {
+				return err
+			}
+
+			c.SmuxClients = append(c.SmuxClients, qc)
 		} else {
 			c.lock.Lock()
+
 			c.SmuxClients[no].Close()
 			c.SmuxClients[no] = nil
-			c.SmuxClients[no] = proquic.NewQuicClient(proxyConfig)
+			qc, err := proquic.NewQuicClient(proxyConfig)
+			if err != nil {
+				return err
+			}
+			c.SmuxClients[no] = qc
 			c.lock.Unlock()
+
 		}
 	} else {
 		if err == nil {
@@ -451,6 +474,10 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 		e := c.SmuxClients[len(c.SmuxClients)-1]
 		if e.IsClosed() {
 			err = c.RebuildSmux(c.lastUse)
+			if err != nil {
+				return nil, err
+			}
+			con, err = e.NewConnnect()
 		} else {
 			con, err = e.NewConnnect()
 		}
@@ -467,6 +494,10 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 			e := c.SmuxClients[c.lastUse]
 			if e.IsClosed() {
 				err = c.RebuildSmux(c.lastUse)
+				if err != nil {
+					return nil, err
+				}
+				con, err = e.NewConnnect()
 			} else {
 				con, err = e.NewConnnect()
 			}
@@ -500,26 +531,44 @@ func (c *ClientControl) InitializationTunnels() {
 		wait.Add(1)
 
 		go func(no int, w *sync.WaitGroup) {
+
 			defer wait.Done()
 			for {
+				// gs.Str("B ").Println(no)
 				err := c.RebuildSmux(no)
+				// gs.Str("A ").Println(no)
 				if err != nil {
 					// gs.Str("rebuild smux err:" + err.Error()).Println("Err")
+					// if !c.islocked {
 					l.Lock()
+					// c.islocked = true
+					// }
+
 					msgs[no] = gs.Str('*').Color("r", "F")
+					// if c.islocked {
+					// c.islocked = false
 					l.Unlock()
+
+					// }
 					// gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print()
-					c.Write(gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print().Str())
+					gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print()
 					if err != nil {
 						base.ErrToFile("RebuildSmux Er", err)
 					}
 					// return nil, err
 				} else {
+					// if !c.islocked {
 					l.Lock()
+					// 	c.islocked = true
+					// }
+
 					msgs[no] = gs.Str('*').Color("g", "B")
 					cc += 1
+					// if c.islocked {
+					// c.islocked = false
 					l.Unlock()
-					c.Write(gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print().Str())
+					// }
+					gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print()
 					break
 				}
 			}
@@ -530,6 +579,7 @@ func (c *ClientControl) InitializationTunnels() {
 	wait.Wait()
 	time.Sleep(1 * time.Second)
 	gs.Str("\nConnected %s :%d").F(c.nowconf.ProxyType, c.ClientNum).Color("g").Println(c.nowconf.ProxyType)
+
 }
 
 func (c *ClientControl) ConnectRemote() (con net.Conn, err error) {

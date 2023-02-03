@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
+	"gitee.com/dark.H/gs"
 	"github.com/quic-go/quic-go"
 )
 
@@ -16,16 +17,18 @@ type QuicClient struct {
 	qcon     quic.Connection
 }
 
-func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient) {
+func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 	qc = new(QuicClient)
 	qc.addr = config.RemoteAddr()
 	tlsconfig, _ := config.GetQuicConfig()
 	cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	// gs.Str("test be").Println("quic config")
 	conn, err := quic.DialAddrContext(cc, qc.addr, tlsconfig, nil)
 	// conn, err := quic.DialAddr(qc.addr, tlsconfig, nil)
+
 	if err != nil {
 		qc.isclosed = true
-		return qc
+		return qc, err
 	}
 	qc.qcon = conn
 	return
@@ -40,7 +43,9 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 		return nil, errors.New("dia quic err")
 	}
 	conn := q.qcon
-	stream, err := conn.OpenStream()
+	var stream quic.Stream
+	gs.Str("open stream !!").Println()
+	stream, err = conn.OpenStream()
 	if err != nil {
 		return nil, err
 	}

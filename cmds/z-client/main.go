@@ -119,11 +119,12 @@ func main() {
 				"kcp",
 			}); choose {
 			default:
-				req := gs.Str(server + "/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[string]{
-					"op":   "change",
-					"type": choose,
-				}.Json())
-				gn.AsReq(req).Go().Body().Println()
+				// req := gs.Str(server + "/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[string]{
+				// 	"op":   "change",
+				// 	"type": choose,
+				// }.Json())
+				// gn.AsReq(req).Go().Body().Println()
+				gs.Str(prosocks5.SendControllCode(string("change/"+choose), deploy.LOCAL_PORT)).Println()
 
 			}
 		case "send code":

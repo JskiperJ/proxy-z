@@ -55,6 +55,7 @@ func GetQuicConfig() *tls.Config {
 			RootCAs:            certpool,
 			ClientCAs:          certpool,
 			InsecureSkipVerify: false,
+			NextProtos:         []string{"quic-echo-stream"},
 		}
 	}
 	return SHARED_TLS_CONFIG

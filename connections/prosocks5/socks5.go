@@ -103,6 +103,7 @@ func SendControllCode(controllCode string, localPort int) (out string) {
 		conn.Close()
 		return err.Error()
 	}
+	// io.Copy(os.Stdout, conn)
 	buf := make([]byte, 8192)
 	n, err := conn.Read(buf)
 	if err != nil {
