@@ -140,7 +140,7 @@ func setupHandler(www string) http.Handler {
 
 	mux.HandleFunc("/c-log", func(w http.ResponseWriter, r *http.Request) {
 		if gs.Str("/tmp/z.log").IsExists() {
-			defer gs.Str("/tmp/z.log").Rm()
+			defer gs.Str("").ToFile("/tmp/z.log", gs.O_NEW_WRITE)
 			fp, err := os.Open("/tmp/z.log")
 			if err != nil {
 				w.Write([]byte(err.Error()))
