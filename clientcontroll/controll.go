@@ -56,6 +56,7 @@ type ClientControl struct {
 	lastUse    int
 	lock       sync.RWMutex
 	Addr       gs.Str
+	stdout     io.WriteCloser
 	closed     bool
 	closeFlag  bool
 }
@@ -236,6 +237,13 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	return
 }
 
+func (c *ClientControl) SetOutFile(out io.WriteCloser) {
+	if c.stdout != nil {
+		c.stdout.Close()
+	}
+	c.stdout = out
+}
+
 /*
 **************************************************************
 **************************************************************
@@ -276,6 +284,13 @@ func (c *ClientControl) Socks5Listen() (err error) {
 				raw, host, _, err := prosocks5.GetLocalRequest(&socks5con)
 				if err != nil {
 					gs.Str(err.Error()).Println("socks5 get host")
+					return
+				}
+				if gs.Str(host).StartsWith("c://") {
+					c.ControllCode(host)
+					c.SetOutFile(socks5con)
+					socks5con.Write([]byte("END Controll :" + host))
+					c.CloseWriter()
 					return
 				}
 				for tryTime := 0; tryTime < 3; tryTime += 1 {
@@ -354,7 +369,19 @@ func (c *ClientControl) ChangeProxyType(tp string) {
 	c.lock.Lock()
 	c.nowconf = nil
 	c.GetAviableProxy(tp)
+	gs.Str("Change Proxy Type :"+tp).Color("y", "B").Println("Change Proxy")
+	c.InitializationTunnels()
 	c.lock.Unlock()
+
+}
+
+func (c *ClientControl) ControllCode(host string) {
+	C := gs.Str(host)
+	if C.StartsWith("c://change/") {
+		changeProxyType := C.Split("c://change/").Nth(1).Trim()
+		c.ChangeProxyType(changeProxyType.Str())
+	}
+
 }
 
 func (c *ClientControl) RebuildSmux(no int) (err error) {
@@ -444,12 +471,27 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 	return
 }
 
+func (c *ClientControl) Write(buf string) {
+	if c.stdout != nil {
+		c.stdout.Write([]byte(buf))
+	}
+}
+
+func (c *ClientControl) CloseWriter() {
+	if c.stdout != nil {
+		c.stdout.Close()
+		c.stdout = nil
+	}
+}
+
 func (c *ClientControl) InitializationTunnels() {
 	wait := sync.WaitGroup{}
 	l := sync.RWMutex{}
 	msgs := gs.Str("*").Color("y").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
+	cc := 0
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
+
 		go func(no int, w *sync.WaitGroup) {
 			defer wait.Done()
 			for {
@@ -459,14 +501,18 @@ func (c *ClientControl) InitializationTunnels() {
 					l.Lock()
 					msgs[no] = gs.Str('*').Color("r", "F")
 					l.Unlock()
-					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
-					base.ErrToFile("RebuildSmux Er", err)
+					// gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print()
+					c.Write(gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print().Str())
+					if err != nil {
+						base.ErrToFile("RebuildSmux Er", err)
+					}
 					// return nil, err
 				} else {
 					l.Lock()
 					msgs[no] = gs.Str('*').Color("g", "B")
+					cc += 1
 					l.Unlock()
-					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
+					c.Write(gs.Str("[%s:%2d] %s \r").F(c.Addr, cc, msgs.Join("")).Print().Str())
 					break
 				}
 			}
@@ -476,7 +522,7 @@ func (c *ClientControl) InitializationTunnels() {
 
 	wait.Wait()
 	time.Sleep(1 * time.Second)
-	gs.Str("\n==                      %s :%d                       ==\n").Color("g").F("Connected Tunnel", c.ClientNum).Print()
+	gs.Str("\nConnected %s :%d").F(c.nowconf.ProxyType, c.ClientNum).Color("g").Println(c.nowconf.ProxyType)
 }
 
 func (c *ClientControl) ConnectRemote() (con net.Conn, err error) {

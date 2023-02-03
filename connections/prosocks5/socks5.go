@@ -47,6 +47,7 @@ var (
 	debug            bool
 
 	Socks5Confirm = []byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43}
+	SOCKS5Init    = []byte{0x5, 0x0}
 	// smuxConfig = smux.DefaultConfig()
 
 )
@@ -70,7 +71,7 @@ func SetReadTimeout(c *net.Conn) {
 //	}
 func HostToRaw(host string, port int) (raw []byte) {
 	raw = []byte{}
-	if port == -1 {
+	if port == -1 && gs.Str(host).In(":") {
 		tmp := strings.SplitN(host, ":", 2)
 		host = tmp[0]
 		port, _ = strconv.Atoi(tmp[1])
@@ -83,6 +84,31 @@ func HostToRaw(host string, port int) (raw []byte) {
 	raw = append(raw, bb...)
 	// fmt.Println("port:", port, "raw:", raw)
 	return
+}
+
+func SendControllCode(controllCode string, localPort int) (out string) {
+	conn, err := net.Dial("tcp", gs.Str("127.0.0.1:%d").F(localPort).Str())
+	if err != nil {
+		return err.Error()
+	}
+	_, err = conn.Write(SOCKS5Init)
+	if err != nil {
+		return "write init err" + err.Error()
+	}
+	_b := make([]byte, 10)
+	conn.Read(_b)
+	// fmt.Println(_b)
+	b := HostToRaw("c://"+controllCode, 0)
+	if _, err = conn.Write(b); err != nil {
+		conn.Close()
+		return err.Error()
+	}
+	buf := make([]byte, 8192)
+	n, err := conn.Read(buf)
+	if err != nil {
+		return err.Error()
+	}
+	return string(buf[:n])
 }
 
 // DialWithRawAddr is intended for use by users implementing a local socks proxy.

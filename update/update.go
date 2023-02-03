@@ -14,7 +14,7 @@ import (
 var (
 	REPO_TMP = gs.Str("/tmp/repo_update")
 	BU       = gs.Str(`mkdir -p  /tmp/repo_update/GoR ; cd /tmp/repo_update/GoR && wget -c 'https://go.dev/dl/go1.19.5.%s-%s.tar.gz' && tar -zxvf go1.19.5.%s-%s.tar.gz ; /tmp/repo_update/GoR/go/bin/go version`)
-	B        = gs.Str(`export PATH="$PATH:/tmp/repo_update/GoR/go/bin" ; cd %s &&  go mod tidy && go build -o Puzzle ; ls `)
+	B        = gs.Str(`export PATH="$PATH:/tmp/repo_update/GoR/go/bin" ; cd %s &&  go mod tidy && go build -o Puzzle ; sysctl -w net.core.rmem_max=2500000  ;ls `)
 )
 
 func Update(beforeExit func(info string, ok bool), repo ...string) {

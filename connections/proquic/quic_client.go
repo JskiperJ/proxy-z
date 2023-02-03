@@ -46,5 +46,10 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 
 func (q *QuicClient) Close() error {
 	q.isclosed = true
-	return q.qcon.CloseWithError(quic.ApplicationErrorCode(0), "closd")
+	if q.qcon != nil {
+		return q.qcon.CloseWithError(quic.ApplicationErrorCode(0), "closd")
+	} else {
+		return errors.New("no qcon")
+	}
+
 }

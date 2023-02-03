@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"io"
 	"os"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/clientcontroll"
+	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
 	"gitee.com/dark.H/ProxyZ/deploy"
 	"gitee.com/dark.H/ProxyZ/servercontroll"
 	"gitee.com/dark.H/gn"
@@ -26,9 +28,9 @@ func main() {
 	log := false
 	// cli := false
 	// configbuild := false
-	l := 1080
+
 	flag.StringVar(&server, "H", "http://localhost:35555", "set server addr/set ssh name / set some other ")
-	flag.IntVar(&l, "l", 1091, "set local socks5 listen port")
+	flag.IntVar(&deploy.LOCAL_PORT, "l", 1091, "set local socks5 listen port")
 
 	flag.BoolVar(&dev, "dev", false, "use ssh to devploy proxy server ; example -H 'user@host:port/pwd' -dev ")
 	flag.BoolVar(&update, "update", false, "set this server update by git")
@@ -80,7 +82,7 @@ func main() {
 		if server == "" {
 			os.Exit(0)
 		}
-		clientcontroll.RunLocal(server, l)
+		clientcontroll.RunLocal(server, deploy.LOCAL_PORT)
 	}
 	if httpmode {
 		deploy.LocalAPI(noopenbrowser)
@@ -101,13 +103,14 @@ func main() {
 		os.Exit(0)
 	}
 	if gs.Str(server) != "" && !gs.Str(server).In("http://") {
-		clientcontroll.RunLocal(server, l)
+		clientcontroll.RunLocal(server, deploy.LOCAL_PORT)
 		os.Exit(0)
 	}
 
 	if server == "http://localhost:35555" {
 		switch gt.Select[string](gs.List[string]{
 			"change proxy type",
+			"send code",
 		}) {
 		case "change proxy type":
 			switch choose := gt.Select[string](gs.List[string]{
@@ -123,6 +126,16 @@ func main() {
 				gn.AsReq(req).Go().Body().Println()
 
 			}
+		case "send code":
+			gs.Str("send code >>").Print()
+			l, _, err := bufio.NewReader(os.Stdin).ReadLine()
+			if err != nil {
+				gs.Str(err.Error()).Color("r").Println("Err")
+				return
+			}
+			gs.Str(prosocks5.SendControllCode(string(l), deploy.LOCAL_PORT)).Println()
+			// bufio.NewReader(os.Stdin).ReadLine()
+
 		}
 	}
 }

@@ -23,7 +23,7 @@ import (
 
 var (
 	BU = gs.Str(`mkdir -p  /tmp/repo_update/GoR ; cd /tmp/repo_update/GoR && wget -c 'https://go.dev/dl/go1.19.5.linux-amd64.tar.gz' && tar -zxf go1.19.5.linux-amd64.tar.gz ; /tmp/repo_update/GoR/go/bin/go version;`)
-	B  = gs.Str(`ps aux | grep './Puzzle' | grep -v grep| awk '{print $2}' | xargs kill -9 ;export PATH="$PATH:/tmp/repo_update/GoR/go/bin" ; cd  /tmp/repo_update &&  git clone https://github.com/glqdv/proxy-z  && cd proxy-z &&  go mod tidy && go build -o Puzzle;  ulimit -n 4096  ;./Puzzle -h; ./Puzzle -d  && sleep 2 ; rm -rf /tmp/repo_update `)
+	B  = gs.Str(`ps aux | grep './Puzzle' | grep -v grep| awk '{print $2}' | xargs kill -9 ;export PATH="$PATH:/tmp/repo_update/GoR/go/bin" ; cd  /tmp/repo_update &&  git clone https://github.com/glqdv/proxy-z  && cd proxy-z &&  go mod tidy && go build -o Puzzle;  ulimit -n 4096 ;sysctl -w net.core.rmem_max=2500000 ;./Puzzle -h; ./Puzzle -d  && sleep 2 ; rm -rf /tmp/repo_update `)
 
 	DOWNADDR = ""
 )
@@ -117,6 +117,24 @@ func DepOneHost(user, host, pwd string) {
 	})
 }
 
+func LogOneHost(user, host, pwd string) {
+	Auth(user, host, pwd, func(client *ssh.Client, sess *ssh.Session) {
+		gs.Str("success auth by ssh use :%s@%s/%s").F(user, host, pwd).Color("g").Println()
+		var out bytes.Buffer
+		sess.Stdout = &out
+		err := sess.Run("cat /tmp/z.log")
+		// err := sess.Run(string(DevStr.F(DOWNADDR)))
+		if err != nil {
+			gs.Str(err.Error()).Color("r").Println(host)
+			// }
+			return
+		} else {
+			gs.Str(out.String()).Trim().Color("g").Println(host)
+		}
+		sess.Close()
+	})
+}
+
 func DepBySSH(sshStr string) {
 	user := "root"
 	host := ""
@@ -180,8 +198,12 @@ func GetConfig(user string, pwd string) (err error) {
 }
 
 func (o *Onevps) Println() {
-	w := gs.Str("tag:%s ").F(o.Tag).Color("b", "B") + gs.Str("host: %s ").F(o.Host).Color("g") + gs.Str("loc: "+o.Location).Color("m", "B")
+	w := gs.Str("tag:%s ").F(o.Tag).Color("b", "B") + gs.Str("host: %s ").F(o.Host).Color("g") + gs.Str("loc: "+o.Location).Color("m", "B") + gs.Str(" root@"+o.Host+":22/"+o.Pwd).Color("U", "B")
 	w.Println()
+}
+
+func (o *Onevps) Log() {
+	LogOneHost("root", o.Host+":22", o.Pwd)
 }
 
 func (o *Onevps) Build() {
@@ -312,9 +334,22 @@ func VultrMode(server string) {
 			i.Println()
 		})
 
-		fmt.Print("build/ test / update / sync")
+		fmt.Print("build/ test / update / sync / log >>>")
 		handler, _ := reader.ReadString('\n')
 		switch gs.Str(handler).Trim() {
+		case "log":
+			waiter := sync.WaitGroup{}
+			devs.Every(func(no int, i *Onevps) {
+				waiter.Add(1)
+				go func() {
+					defer waiter.Done()
+					i.Log()
+				}()
+			})
+			waiter.Wait()
+
+			fmt.Print("enter to continue")
+			reader.ReadString('\n')
 		case "build":
 			waiter := sync.WaitGroup{}
 			devs.Every(func(no int, i *Onevps) {
