@@ -141,7 +141,7 @@ func (config *ProtocolConfig) GetQuicConfig() (conf *tls.Config, ok bool) {
 		Certificates:       []tls.Certificate{cert},
 		RootCAs:            certpool,
 		ClientCAs:          certpool,
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: true,
 		NextProtos:         []string{"quic-echo-stream"},
 	}
 	return

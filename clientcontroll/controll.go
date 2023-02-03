@@ -262,6 +262,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 		for {
 			if c.ErrCount > 7 {
 				c.ReportErrorProxy()
+				gs.Str("ReportErrorProxy :" + c.nowconf.ID + " " + c.nowconf.ProxyType).Color("y").Println("?")
 				c.ErrCount = 0
 			}
 			if c.closeFlag {

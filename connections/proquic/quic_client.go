@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
-	"gitee.com/dark.H/gs"
 	"github.com/quic-go/quic-go"
 )
 
@@ -44,7 +43,7 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	}
 	conn := q.qcon
 	var stream quic.Stream
-	gs.Str("open stream !!").Println()
+	// gs.Str("open stream !!").Println()
 	stream, err = conn.OpenStream()
 	if err != nil {
 		return nil, err
