@@ -299,7 +299,11 @@ func (c *ClientControl) Socks5Listen() (err error) {
 				for tryTime := 0; tryTime < 3; tryTime += 1 {
 					remotecon, err := c.ConnectRemote()
 					if err != nil {
-						gs.Str(err.Error()).Println("connect proxy server err")
+						if !gs.Str(err.Error()).In("timeout") && !gs.Str(err.Error()).In("EOF") {
+
+							gs.Str(err.Error()).Println("connect proxy server err")
+						}
+
 						c.lock.Lock()
 						c.ErrCount += 1
 						c.lock.Unlock()
@@ -589,7 +593,7 @@ func (c *ClientControl) ConnectRemote() (con net.Conn, err error) {
 
 	con, err = c.GetSession()
 	if err != nil {
-		gs.Str("rebuild smux").Println("connect remote")
+		// gs.Str("rebuild smux").Println("connect remote")
 		con, err = c.GetSession()
 	}
 	// gs.Str("smxu connect ").Println()

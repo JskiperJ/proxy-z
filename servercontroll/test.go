@@ -23,7 +23,7 @@ func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 		if k == "status" {
 			// gs.S(v).Color("g").Println(server)
 			if v != "ok" {
-				gs.Str("server is not alive !").Color("r").Println(server)
+				gs.Str("server is not alive !" + v.(string)).Color("r").Println(server)
 				ok = false
 			}
 		} else if k == "ids" {
