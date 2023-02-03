@@ -176,12 +176,12 @@ func setupHandler(www string) http.Handler {
 		ids.Every(func(no int, i string) {
 			DelProxy(i)
 		})
-
-		Reply(w, "updaing... wait 3 s", true)
-		update.Update(func(info string, ok bool) {
+		go update.Update(func(info string, ok bool) {
 			Reply(w, info, ok)
 		})
-		os.Exit(0)
+		Reply(w, "updaing... wait 3 s", true)
+
+		// os.Exit(0)
 		// }
 	})
 

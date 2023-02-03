@@ -72,6 +72,7 @@ func Update(beforeExit func(info string, ok bool), repo ...string) {
 	Daemon(args, "/tmp/z.log")
 	time.Sleep(3 * time.Second)
 	gs.Str("Exit old Version !").Color("g").Println()
+	os.Exit(0)
 }
 
 func Daemon(args []string, LOG_FILE string) {
