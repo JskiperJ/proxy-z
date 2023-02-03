@@ -126,7 +126,21 @@ func setupHandler(www string) http.Handler {
 
 	mux.HandleFunc("/z-log", func(w http.ResponseWriter, r *http.Request) {
 		if gs.Str("/tmp/z.log").IsExists() {
-			// w.Write(gs.Str("/tmp/z.log").MustAsFile().Bytes())
+			fp, err := os.Open("/tmp/z.log")
+			if err != nil {
+				w.Write([]byte(err.Error()))
+			} else {
+				defer fp.Close()
+				io.Copy(w, fp)
+			}
+		} else {
+			w.Write(gs.Str("/tmp/z.log not exists !!!").Bytes())
+		}
+	})
+
+	mux.HandleFunc("/c-log", func(w http.ResponseWriter, r *http.Request) {
+		if gs.Str("/tmp/z.log").IsExists() {
+			defer gs.Str("/tmp/z.log").Rm()
 			fp, err := os.Open("/tmp/z.log")
 			if err != nil {
 				w.Write([]byte(err.Error()))

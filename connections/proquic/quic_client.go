@@ -1,8 +1,10 @@
 package proquic
 
 import (
+	"context"
 	"errors"
 	"net"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"github.com/quic-go/quic-go"
@@ -18,7 +20,9 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient) {
 	qc = new(QuicClient)
 	qc.addr = config.RemoteAddr()
 	tlsconfig, _ := config.GetQuicConfig()
-	conn, err := quic.DialAddr(qc.addr, tlsconfig, nil)
+	cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	conn, err := quic.DialAddrContext(cc, qc.addr, tlsconfig, nil)
+	// conn, err := quic.DialAddr(qc.addr, tlsconfig, nil)
 	if err != nil {
 		qc.isclosed = true
 		return qc

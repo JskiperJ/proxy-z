@@ -370,7 +370,14 @@ func (c *ClientControl) ChangeProxyType(tp string) {
 	c.nowconf = nil
 	c.GetAviableProxy(tp)
 	gs.Str("Change Proxy Type :"+tp).Color("y", "B").Println("Change Proxy")
+	old := c.ClientNum
+	if c.nowconf.ProxyType == "quic" {
+		c.ClientNum = 5
+	}
 	c.InitializationTunnels()
+	if c.nowconf.ProxyType == "quic" {
+		c.ClientNum = old
+	}
 	c.lock.Unlock()
 
 }

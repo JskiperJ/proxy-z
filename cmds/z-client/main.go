@@ -97,7 +97,7 @@ func main() {
 		} else {
 			f = "https://" + gs.Str(server).Str()
 		}
-		req := gs.Str(f + "/z-log").AsRequest()
+		req := gs.Str(f + "/c-log").AsRequest()
 		r := gn.AsReq(req).Go().AsRequest().BodyReader()
 		io.Copy(os.Stdout, r)
 		os.Exit(0)
