@@ -54,20 +54,79 @@ func setupHandler(www string) http.Handler {
 	})
 
 	mux.HandleFunc("/proxy-get", func(w http.ResponseWriter, r *http.Request) {
-		tu := GetProxy()
-		if !tu.On {
-			afterID := tu.GetConfig().ID
-			err := tu.Start(func() {
-				DelProxy(afterID)
-			})
-			if err != nil {
-				Reply(w, err, false)
-				return
+		d, _ := Recv(r.Body)
+		if d == nil {
+			tu := GetProxy()
+			if !tu.On {
+				afterID := tu.GetConfig().ID
+				err := tu.Start(func() {
+					DelProxy(afterID)
+				})
+				if err != nil {
+					Reply(w, err, false)
+					return
+				}
+			}
+			str := tu.GetConfig()
+			Reply(w, str, true)
+		} else {
+			if proxyType, ok := d["type"]; ok {
+				switch proxyType.(type) {
+				case string:
+					tu := GetProxy(proxyType.(string))
+					if !tu.On {
+						afterID := tu.GetConfig().ID
+						err := tu.Start(func() {
+							DelProxy(afterID)
+						})
+						if err != nil {
+							Reply(w, err, false)
+							return
+						}
+					}
+					str := tu.GetConfig()
+					Reply(w, str, true)
+				default:
+					tu := GetProxy()
+					if !tu.On {
+						afterID := tu.GetConfig().ID
+						err := tu.Start(func() {
+							DelProxy(afterID)
+						})
+						if err != nil {
+							Reply(w, err, false)
+							return
+						}
+					}
+					str := tu.GetConfig()
+					Reply(w, str, true)
+				}
+			} else {
+				tu := GetProxy()
+				if !tu.On {
+					afterID := tu.GetConfig().ID
+					err := tu.Start(func() {
+						DelProxy(afterID)
+					})
+					if err != nil {
+						Reply(w, err, false)
+						return
+					}
+				}
+				str := tu.GetConfig()
+				Reply(w, str, true)
 			}
 		}
-		str := tu.GetConfig()
-		Reply(w, str, true)
 	})
+
+	mux.HandleFunc("/z-log", func(w http.ResponseWriter, r *http.Request) {
+		if gs.Str("/tmp/z.log").IsExists() {
+			w.Write(gs.Str("/tmp/z.log").MustAsFile().Bytes())
+		} else {
+			w.Write(gs.Str("/tmp/z.log not exists !!!").Bytes())
+		}
+	})
+
 	mux.HandleFunc("/04__close-all", func(w http.ResponseWriter, r *http.Request) {
 		ids := gs.List[string]{}
 		Tunnels.Every(func(no int, i *base.ProxyTunnel) {

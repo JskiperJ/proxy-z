@@ -5,6 +5,7 @@ import (
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/connections/prokcp"
+	"gitee.com/dark.H/ProxyZ/connections/proquic"
 	"gitee.com/dark.H/ProxyZ/connections/protls"
 	"gitee.com/dark.H/gs"
 )
@@ -12,25 +13,42 @@ import (
 var (
 	lock         = sync.RWMutex{}
 	ErrTypeCount = gs.Dict[int]{
-		"tls": 0,
-		"kcp": 0,
+		"tls":  0,
+		"kcp":  0,
+		"quic": 0,
 	}
 	lastUse = 0
 )
 
-func GetProxy() *base.ProxyTunnel {
-	if Tunnels.Count() == 0 {
+func GetProxy(proxyType ...string) *base.ProxyTunnel {
+	if proxyType == nil {
 
-		tunnel := NewProxy("tls")
-		AddProxy(tunnel)
-		return tunnel
+		if Tunnels.Count() == 0 {
+			tunnel := NewProxy("tls")
+			AddProxy(tunnel)
+			return tunnel
+		} else {
+			lock.Lock()
+			lastUse += 1
+			lastUse = lastUse % Tunnels.Count()
+			lock.Unlock()
+			tunnel := Tunnels.Nth(lastUse)
+			return tunnel
+		}
 	} else {
-		lock.Lock()
-		lastUse += 1
-		lastUse = lastUse % Tunnels.Count()
-		lock.Unlock()
-		tunnel := Tunnels.Nth(lastUse)
-		return tunnel
+		var tu *base.ProxyTunnel
+		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+			if i.GetConfig().ProxyType == proxyType[0] {
+				tu = i
+			}
+		})
+		if tu == nil {
+			tunnel := NewProxy(proxyType[0])
+			AddProxy(tunnel)
+			return tunnel
+		} else {
+			return tu
+		}
 	}
 }
 
@@ -102,6 +120,11 @@ func NewProxy(tp string) *base.ProxyTunnel {
 	case "kcp":
 		config := base.RandomConfig()
 		protocl := prokcp.NewKcpServer(config)
+		tunel := base.NewProxyTunnel(protocl)
+		return tunel
+	case "quic":
+		config := base.RandomConfig()
+		protocl := proquic.NewQuicServer(config)
 		tunel := base.NewProxyTunnel(protocl)
 		return tunel
 	default:

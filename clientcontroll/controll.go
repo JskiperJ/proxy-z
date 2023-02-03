@@ -13,6 +13,7 @@ import (
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/connections/prokcp"
+	"gitee.com/dark.H/ProxyZ/connections/proquic"
 	"gitee.com/dark.H/ProxyZ/connections/prosmux"
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
 	"gitee.com/dark.H/ProxyZ/connections/protls"
@@ -38,8 +39,14 @@ func RunLocal(server string, l int) {
 	cli.Socks5Listen()
 }
 
+type SmuxorQuicClient interface {
+	NewConnnect() (c net.Conn, err error)
+	Close() error
+	IsClosed() bool
+}
+
 type ClientControl struct {
-	SmuxClients []*prosmux.SmuxConfig
+	SmuxClients []SmuxorQuicClient
 
 	nowconf    *base.ProtocolConfig
 	ClientNum  int
@@ -172,7 +179,7 @@ func (c *ClientControl) ReportErrorProxy() (conf *base.ProtocolConfig) {
 	return
 }
 
-func (c *ClientControl) GetAviableProxy() (conf *base.ProtocolConfig) {
+func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig) {
 	if c.nowconf != nil {
 		return c.nowconf
 	}
@@ -190,10 +197,17 @@ func (c *ClientControl) GetAviableProxy() (conf *base.ProtocolConfig) {
 		addr = c.Addr.Str()
 	}
 	var reply gs.Str
+	var data gs.Dict[any]
+	data = nil
+	if tp != nil {
+		data = gs.Dict[any]{
+			"type": tp[0],
+		}
+	}
 	if useTls {
-		reply = servercontroll.HTTPSPost("https://"+addr+"/proxy-get", nil)
+		reply = servercontroll.HTTPSPost("https://"+addr+"/proxy-get", data)
 	} else {
-		reply = servercontroll.HTTP3Post("https://"+addr+"/proxy-get", nil)
+		reply = servercontroll.HTTP3Post("https://"+addr+"/proxy-get", data)
 	}
 
 	if reply == "" {
@@ -267,14 +281,12 @@ func (c *ClientControl) Socks5Listen() (err error) {
 					remotecon, err := c.ConnectRemote()
 					if err != nil {
 						gs.Str(err.Error()).Println("connect proxy server err")
-						return
+						c.lock.Lock()
+						c.ErrCount += 1
+						c.lock.Unlock()
+						continue
 					}
-					if remotecon == nil {
-						if socks5con != nil {
-							socks5con.Close()
-						}
-						return
-					}
+
 					defer remotecon.Close()
 					_, err = remotecon.Write(raw)
 					if err != nil {
@@ -282,7 +294,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 						c.lock.Lock()
 						c.ErrCount += 1
 						c.lock.Unlock()
-						return
+						continue
 					}
 					// gs.Str(host).Color("g").Println("connect|write")
 					_buf := make([]byte, len(prosocks5.Socks5Confirm))
@@ -304,7 +316,10 @@ func (c *ClientControl) Socks5Listen() (err error) {
 						_, err = socks5con.Write(_buf)
 						if err != nil {
 							gs.Str(err.Error()).Println("connecting reply|" + host)
-							return
+							c.lock.Lock()
+							c.ErrCount += 1
+							c.lock.Unlock()
+							continue
 						}
 					}
 
@@ -334,6 +349,13 @@ func (c *ClientControl) Socks5Listen() (err error) {
 	return
 }
 
+func (c *ClientControl) ChangeProxyType(tp string) {
+	c.lock.Lock()
+	c.nowconf = nil
+	c.GetAviableProxy(tp)
+	c.lock.Unlock()
+}
+
 func (c *ClientControl) RebuildSmux(no int) (err error) {
 	proxyConfig := c.GetAviableProxy()
 	if proxyConfig == nil {
@@ -342,27 +364,39 @@ func (c *ClientControl) RebuildSmux(no int) (err error) {
 	var singleTunnelConn net.Conn
 	switch proxyConfig.ProxyType {
 	case "tls":
-		singleTunnelConn, err = protls.ConnectTls(proxyConfig.RemoteAddr(), proxyConfig)
+		singleTunnelConn, err = protls.ConnectTls(proxyConfig)
 	case "kcp":
-		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig.RemoteAddr(), proxyConfig)
+		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig)
+	case "quic":
 	default:
-		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig.RemoteAddr(), proxyConfig)
+		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig)
 	}
 	if err != nil {
 		return
 	}
+
 	// gs.Str("--> "+proxyConfig.RemoteAddr()).Color("y", "B").Println(proxyConfig.ProxyType)
-	if singleTunnelConn != nil {
+	if singleTunnelConn != nil && proxyConfig.ProxyType != "quic" {
 		if len(c.SmuxClients) <= no {
 			c.SmuxClients = append(c.SmuxClients, prosmux.NewSmuxClient(singleTunnelConn))
 		} else {
 			c.lock.Lock()
-			c.SmuxClients[no].Session.Close()
+			c.SmuxClients[no].Close()
 			c.SmuxClients[no] = nil
 			c.SmuxClients[no] = prosmux.NewSmuxClient(singleTunnelConn)
 			c.lock.Unlock()
 		}
+	} else if proxyConfig.ProxyType == "quic" {
+		if len(c.SmuxClients) <= no {
 
+			c.SmuxClients = append(c.SmuxClients, proquic.NewQuicClient(proxyConfig))
+		} else {
+			c.lock.Lock()
+			c.SmuxClients[no].Close()
+			c.SmuxClients[no] = nil
+			c.SmuxClients[no] = proquic.NewQuicClient(proxyConfig)
+			c.lock.Unlock()
+		}
 	} else {
 		if err == nil {
 			err = errors.New("tls/kcp only :  now method is :" + proxyConfig.ProxyType)
@@ -379,7 +413,7 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 	c.lock.Unlock()
 	if c.lastUse >= len(c.SmuxClients) && len(c.SmuxClients) > 0 {
 		e := c.SmuxClients[len(c.SmuxClients)-1]
-		if e.Session.IsClosed() {
+		if e.IsClosed() {
 			err = c.RebuildSmux(c.lastUse)
 		} else {
 			con, err = e.NewConnnect()
@@ -395,7 +429,7 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 			con, err = e.NewConnnect()
 		} else {
 			e := c.SmuxClients[c.lastUse]
-			if e.Session.IsClosed() {
+			if e.IsClosed() {
 				err = c.RebuildSmux(c.lastUse)
 			} else {
 				con, err = e.NewConnnect()
@@ -411,7 +445,7 @@ func (c *ClientControl) GetSession() (con net.Conn, err error) {
 func (c *ClientControl) InitializationTunnels() {
 	wait := sync.WaitGroup{}
 	l := sync.RWMutex{}
-	msgs := gs.Str("*").Color("r").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
+	msgs := gs.Str("*").Color("y").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
 		go func(no int, w *sync.WaitGroup) {
@@ -421,7 +455,7 @@ func (c *ClientControl) InitializationTunnels() {
 				if err != nil {
 					// gs.Str("rebuild smux err:" + err.Error()).Println("Err")
 					l.Lock()
-					msgs[no] = gs.Str('*').Color("y", "B")
+					msgs[no] = gs.Str('*').Color("r", "B")
 					l.Unlock()
 					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
 					// return nil, err
@@ -432,7 +466,6 @@ func (c *ClientControl) InitializationTunnels() {
 					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
 					break
 				}
-
 			}
 
 		}(i, &wait)

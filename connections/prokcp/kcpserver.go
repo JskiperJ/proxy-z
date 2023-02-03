@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"net"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/gs"
@@ -59,6 +60,7 @@ type KcpServer struct {
 	// TunnelChan     chan Channel
 	// TcpListenPorts map[string]int
 	AcceptConn int
+	ZeroToDel  bool
 	// RedirectBook  *utils.Config
 }
 
@@ -117,4 +119,34 @@ func NewKcpServer(config *base.ProtocolConfig) *KcpServer {
 	k.config = config
 
 	return k
+}
+
+func (kcpServer *KcpServer) AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error) {
+	wait10minute := time.NewTicker(1 * time.Minute)
+	listener := kcpServer.GetListener()
+	for {
+	LOOP:
+		select {
+		case <-wait10minute.C:
+			break LOOP
+		default:
+			if kcpServer.ZeroToDel {
+				break
+			} else {
+				wait10minute.Reset(waitTime)
+			}
+		}
+
+		con, err := listener.Accept()
+		if err != nil {
+			listener.Close()
+			return err
+		}
+		go handle(con)
+	}
+	// return
+}
+
+func (kcpServer *KcpServer) TryClose() {
+	kcpServer.ZeroToDel = true
 }

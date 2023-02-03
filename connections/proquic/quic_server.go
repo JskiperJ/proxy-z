@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"log"
 	"net"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
 	"gitee.com/dark.H/ProxyZ/connections/base"
@@ -18,6 +18,7 @@ type QuicServer struct {
 	config     *base.ProtocolConfig
 	tlsconfig  *tls.Config
 	AcceptConn int
+	ZeroToDel  bool
 	handleConn func(con net.Conn) error
 }
 
@@ -60,25 +61,45 @@ func GetQuicConfig() *tls.Config {
 
 }
 
-func (quicServe *QuicServer) Accept() (err error) {
-	address := gs.Str("%s:%d").F(quicServe.config.Server, quicServe.config.ServerPort).Str()
-	listener, err := quic.ListenAddr(address, quicServe.tlsconfig, nil)
+func (quicServe *QuicServer) GetListener() (ls net.Listener) {
+	return
+}
 
-	if listener == nil {
-		return errors.New("listener err! in quic" + err.Error())
+func (quicServe *QuicServer) AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error) {
+	address := gs.Str("%s:%d").F(quicServe.config.Server, quicServe.config.ServerPort).Str()
+	wait10minute := time.NewTicker(1 * time.Minute)
+	listener, err := quic.ListenAddr(address, quicServe.tlsconfig, nil)
+	if err != nil {
+		return err
 	}
+	quicServe.handleConn = handle
 	for {
+	LOOP:
+		select {
+		case <-wait10minute.C:
+			break LOOP
+		default:
+			if quicServe.ZeroToDel {
+				break
+			} else {
+				wait10minute.Reset(waitTime)
+			}
+		}
 		con, err := listener.Accept(context.Background())
 		if err != nil {
 			return err
 		}
-		go quicServe.AccpeStream(con)
+		go quicServe.accpeStream(con)
 	}
 
 	// return
 }
 
-func (quicServer *QuicServer) AccpeStream(con quic.Connection) (err error) {
+func (quicServer *QuicServer) TryClose() {
+	quicServer.ZeroToDel = true
+}
+
+func (quicServer *QuicServer) accpeStream(con quic.Connection) (err error) {
 	// defer con.CloseWithError(quic.StreamErrorCode)
 	for {
 		stream, err := con.AcceptStream(context.Background())

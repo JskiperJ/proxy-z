@@ -21,6 +21,7 @@ type ClientInterface interface {
 	Socks5Listen() error
 	ChangePort(int)
 	GetRoute() string
+	ChangeProxyType(tp string)
 }
 
 type HTTPAPIConfig struct {
@@ -140,7 +141,14 @@ func localSetupHandler() http.Handler {
 						return
 					}
 				}
-
+			case "change":
+				if proxyTp, ok := d["proxy-type"]; ok {
+					go globalClient.ClientConf.ChangeProxyType(proxyTp.(string))
+					Reply(w, "change proxy :"+proxyTp.(string), true)
+				} else {
+					Reply(w, "faled", false)
+				}
+				return
 			case "switch":
 				if host, ok := d["host"]; ok && host != nil {
 					gs.Str(host.(string)).Color("g", "B").Println("Swtich")

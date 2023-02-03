@@ -15,6 +15,8 @@ import (
 type Protocol interface {
 	GetListener() net.Listener
 	GetConfig() *ProtocolConfig
+	AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error)
+	TryClose()
 	DelCon(con net.Conn)
 }
 
@@ -42,6 +44,7 @@ func (pt *ProxyTunnel) Start(after func()) (err error) {
 	go pt.Server(after)
 	return
 }
+
 func (pt *ProxyTunnel) Server(after func()) (err error) {
 	serverPort := pt.GetConfig().ServerPort
 	defer func() {
@@ -53,43 +56,28 @@ func (pt *ProxyTunnel) Server(after func()) (err error) {
 	if pt.protocl == nil {
 		return errors.New("no protocol set in ProxyTunnel")
 	}
-	listener := pt.protocl.GetListener()
-	if listener == nil {
-		return errors.New("protocol.listenre is null !!!")
-	}
 
-	if pt.UseSmux {
+	if pt.GetConfig().ProxyType == "quic" {
+		gs.Str(pt.GetConfig().ID + "|" + pt.GetConfig().ProxyType + "| addr:" + pt.GetConfig().RemoteAddr()).Println("Start Quic Server ")
+		pt.protocl.AcceptHandle(10*time.Minute, func(con net.Conn) error {
+			pt.HandleConnAsync(con)
+			return nil
+		})
+
+	} else if pt.UseSmux {
 		gs.Str(pt.GetConfig().ID + "|" + pt.GetConfig().ProxyType + "| addr:" + pt.GetConfig().RemoteAddr()).Println("Start Smux Tunnel")
-		smux := prosmux.NewSmuxServer(listener, func(con net.Conn) (err error) {
+		smux := prosmux.NewSmuxServer(pt.protocl, func(con net.Conn) (err error) {
 			pt.HandleConnAsync(con)
 			return
 		})
-		smux.ZeroToDel = &pt.ZeroToDel
 
 		return smux.Server()
 	} else {
 		gs.Str(pt.GetConfig().ID + "|" + pt.GetConfig().ProxyType + "| addr:" + pt.GetConfig().RemoteAddr()).Println("Start Tunnel")
-		wait10minute := time.NewTicker(10 * time.Minute)
-		for {
-		LOOP:
-			select {
-			case <-wait10minute.C:
-				break LOOP
-			default:
-				if pt.ZeroToDel {
-					break
-				} else {
-					wait10minute.Reset(10 * time.Minute)
-				}
-			}
-
-			con, err := listener.Accept()
-			if err != nil {
-				listener.Close()
-				return err
-			}
-			go pt.HandleConnAsync(con)
-		}
+		pt.protocl.AcceptHandle(10*time.Minute, func(con net.Conn) error {
+			pt.HandleConnAsync(con)
+			return nil
+		})
 
 	}
 
@@ -97,7 +85,7 @@ func (pt *ProxyTunnel) Server(after func()) (err error) {
 }
 
 func (pt *ProxyTunnel) SetWaitToClose() {
-	pt.ZeroToDel = true
+	pt.protocl.TryClose()
 
 }
 

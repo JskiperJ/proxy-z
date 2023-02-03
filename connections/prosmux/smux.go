@@ -28,30 +28,36 @@ var BGCOLORS = []func(a ...interface{}) string{
 	color.New(color.BgBlue, color.Bold).SprintFunc(),
 }
 
+type ProxyHandler interface {
+	AcceptHandle(waiter time.Duration, handle func(con net.Conn) error) error
+	TryClose()
+	DelCon(con net.Conn)
+}
+
 type SmuxConfig struct {
-	Mode         string `json:"mode"`
-	NoDelay      int    `json:"nodelay"`
-	Interval     int    `json:"interval"`
-	Resend       int    `json:"resend"`
-	NoCongestion int    `json:"nocongeestion"`
-	AutoExpire   int    `json:"autoexpire"`
-	ScavengeTTL  int    `json:"scavengettl"`
-	MTU          int    `json:"mtu"`
-	SndWnd       int    `json:"sndwnd"`
-	RcvWnd       int    `json:"rcvwnd"`
-	DataShard    int    `json:"datashard"`
-	ParityShard  int    `json:"parityshard"`
-	KeepAlive    int    `json:"keepalive"`
-	SmuxBuf      int    `json:"smuxbuf"`
-	StreamBuf    int    `json:"streambuf"`
-	AckNodelay   bool   `json:"acknodelay"`
-	SocketBuf    int    `json:"socketbuf"`
-	Listener     net.Listener
-	ClientConn   net.Conn
-	clienConf    *smux.Config
-	Session      *smux.Session
-	ZeroToDel    *bool
-	handleStream func(conn net.Conn) (err error)
+	Mode            string `json:"mode"`
+	NoDelay         int    `json:"nodelay"`
+	Interval        int    `json:"interval"`
+	Resend          int    `json:"resend"`
+	NoCongestion    int    `json:"nocongeestion"`
+	AutoExpire      int    `json:"autoexpire"`
+	ScavengeTTL     int    `json:"scavengettl"`
+	MTU             int    `json:"mtu"`
+	SndWnd          int    `json:"sndwnd"`
+	RcvWnd          int    `json:"rcvwnd"`
+	DataShard       int    `json:"datashard"`
+	ParityShard     int    `json:"parityshard"`
+	KeepAlive       int    `json:"keepalive"`
+	SmuxBuf         int    `json:"smuxbuf"`
+	StreamBuf       int    `json:"streambuf"`
+	AckNodelay      bool   `json:"acknodelay"`
+	SocketBuf       int    `json:"socketbuf"`
+	WrapProxyServer ProxyHandler
+	ClientConn      net.Conn
+	clienConf       *smux.Config
+	Session         *smux.Session
+	ZeroToDel       *bool
+	handleStream    func(conn net.Conn) (err error)
 }
 
 func (kconfig *SmuxConfig) SetAsDefault() {
@@ -70,9 +76,9 @@ func (kconfig *SmuxConfig) SetAsDefault() {
 	kconfig.SocketBuf = 4194304 * 2
 }
 
-func NewSmuxServer(listener net.Listener, handle func(con net.Conn) (err error)) (s *SmuxConfig) {
+func NewSmuxServer(proxyServer ProxyHandler, handle func(con net.Conn) (err error)) (s *SmuxConfig) {
 	s = new(SmuxConfig)
-	s.Listener = listener
+	s.WrapProxyServer = proxyServer
 	s.handleStream = handle
 	s.SetAsDefault()
 	return
@@ -105,6 +111,12 @@ func NewSmuxClient(conn net.Conn) (s *SmuxConfig) {
 	}
 	s.Session = mux
 	return
+}
+func (s *SmuxConfig) IsClosed() bool {
+	if s.Session == nil {
+		return false
+	}
+	return s.Session.IsClosed()
 }
 
 func (s *SmuxConfig) NewConnnect() (con net.Conn, err error) {
@@ -168,32 +180,37 @@ func (kconfig *SmuxConfig) GenerateConfig() *smux.Config {
 
 func (m *SmuxConfig) Server() (err error) {
 	// ColorD(m)
-	wait10minute := time.NewTicker(1 * time.Minute)
-	for {
-	LOOP:
-		// Accept a TCP connection
-		select {
-		case <-wait10minute.C:
-		default:
-			if *m.ZeroToDel {
-				m.Listener.Close()
-				break LOOP
-			} else {
-				wait10minute.Reset(10 * time.Minute)
-			}
 
-		}
-		conn, err := m.Listener.Accept()
-		if err != nil {
-			time.Sleep(10 * time.Second)
-			gs.Str(err.Error()).Println("smux raw conn accpet err")
-			m.Listener.Close()
-			break
-		}
+	m.WrapProxyServer.AcceptHandle(10*time.Minute, func(con net.Conn) error {
+		go m.AccpetStream(con)
+		return nil
+	})
 
-		go m.AccpetStream(conn)
-	}
-	m.Listener.Close()
+	// for {
+	// LOOP:
+	// 	// Accept a TCP connection
+	// 	select {
+	// 	case <-wait10minute.C:
+	// 	default:
+	// 		if *m.ZeroToDel {
+	// 			m.Listener.Close()
+	// 			break LOOP
+	// 		} else {
+	// 			wait10minute.Reset(10 * time.Minute)
+	// 		}
+
+	// 	}
+	// 	conn, err := m.Listener.Accept()
+	// 	if err != nil {
+	// 		time.Sleep(10 * time.Second)
+	// 		gs.Str(err.Error()).Println("smux raw conn accpet err")
+	// 		m.Listener.Close()
+	// 		break
+	// 	}
+
+	// 	go m.AccpetStream(conn)
+	// }
+	// m.Listener.Close()
 	return nil
 	// return err
 }

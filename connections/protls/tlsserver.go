@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
 	"gitee.com/dark.H/ProxyZ/connections/base"
@@ -27,6 +28,7 @@ type TlsServer struct {
 	// TunnelChan     chan Channel
 	// TcpListenPorts map[string]int
 	AcceptConn int
+	ZeroToDel  bool
 	// RedirectBook  *utils.Config
 }
 
@@ -59,6 +61,36 @@ func GetTlsConfig() *tls.Config {
 	}
 	return SHARED_TLS_CONFIG
 
+}
+
+func (tlsServer *TlsServer) AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error) {
+	wait10minute := time.NewTicker(1 * time.Minute)
+	listener := tlsServer.GetListener()
+	for {
+	LOOP:
+		select {
+		case <-wait10minute.C:
+			break LOOP
+		default:
+			if tlsServer.ZeroToDel {
+				break
+			} else {
+				wait10minute.Reset(waitTime)
+			}
+		}
+
+		con, err := listener.Accept()
+		if err != nil {
+			listener.Close()
+			return err
+		}
+		go handle(con)
+	}
+	// return
+}
+
+func (tlsServer *TlsServer) TryClose() {
+	tlsServer.ZeroToDel = true
 }
 
 func (tlsserver *TlsServer) Accept() (con net.Conn, err error) {
