@@ -15,8 +15,8 @@ const bufSize = 4096
 
 func ErrToFile(label string, err error) {
 	c := gs.Str("[%s]:" + err.Error() + "\n").F(label)
-	c.Color("r").Print()
-	c.ToFile(string(gs.TMP.PathJoin("z.log")))
+	// c.Color("r").Print()
+	c.ToFile("/tmp/z.log")
 }
 
 // const bufSize = 8192

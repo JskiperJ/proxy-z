@@ -1,6 +1,7 @@
 package servercontroll
 
 import (
+	"io"
 	"net/http"
 	"os"
 
@@ -54,7 +55,11 @@ func setupHandler(www string) http.Handler {
 	})
 
 	mux.HandleFunc("/proxy-get", func(w http.ResponseWriter, r *http.Request) {
-		d, _ := Recv(r.Body)
+		d, err := Recv(r.Body)
+		if err != nil {
+			Reply(w, err, false)
+			return
+		}
 		if d == nil {
 			tu := GetProxy()
 			if !tu.On {
@@ -121,7 +126,14 @@ func setupHandler(www string) http.Handler {
 
 	mux.HandleFunc("/z-log", func(w http.ResponseWriter, r *http.Request) {
 		if gs.Str("/tmp/z.log").IsExists() {
-			w.Write(gs.Str("/tmp/z.log").MustAsFile().Bytes())
+			// w.Write(gs.Str("/tmp/z.log").MustAsFile().Bytes())
+			_, fp, err := gs.Str("/tmp/z.log").OpenFile(gs.O_READ_ONLY)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+			} else {
+				defer fp.Close()
+				io.Copy(w, fp)
+			}
 		} else {
 			w.Write(gs.Str("/tmp/z.log not exists !!!").Bytes())
 		}

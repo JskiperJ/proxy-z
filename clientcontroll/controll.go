@@ -184,7 +184,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		return c.nowconf
 	}
 	var addr string
-	useTls := false
+	useTls := true
 	if c.Addr.StartsWith("tls://") {
 		addr = c.Addr.Split("://")[1].Str()
 		useTls = true
@@ -201,6 +201,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	data = nil
 	if tp != nil {
 		data = gs.Dict[any]{
+
 			"type": tp[0],
 		}
 	}
@@ -372,7 +373,8 @@ func (c *ClientControl) RebuildSmux(no int) (err error) {
 		singleTunnelConn, err = prokcp.ConnectKcp(proxyConfig)
 	}
 	if err != nil {
-		return
+
+		return errors.New(err.Error() + " in Protocol" + proxyConfig.ProxyType)
 	}
 
 	// gs.Str("--> "+proxyConfig.RemoteAddr()).Color("y", "B").Println(proxyConfig.ProxyType)
@@ -458,6 +460,7 @@ func (c *ClientControl) InitializationTunnels() {
 					msgs[no] = gs.Str('*').Color("r", "B")
 					l.Unlock()
 					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
+					base.ErrToFile("RebuildSmux Er", err)
 					// return nil, err
 				} else {
 					l.Lock()

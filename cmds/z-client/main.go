@@ -2,13 +2,16 @@ package main
 
 import (
 	"flag"
+	"io"
 	"os"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/clientcontroll"
 	"gitee.com/dark.H/ProxyZ/deploy"
 	"gitee.com/dark.H/ProxyZ/servercontroll"
+	"gitee.com/dark.H/gn"
 	"gitee.com/dark.H/gs"
+	"gitee.com/dark.H/gt"
 )
 
 func main() {
@@ -20,10 +23,11 @@ func main() {
 	daemon := false
 	httpmode := false
 	noopenbrowser := false
+	log := false
 	// cli := false
 	// configbuild := false
 	l := 1080
-	flag.StringVar(&server, "H", "https://localhost:55443", "set server addr/set ssh name / set some other ")
+	flag.StringVar(&server, "H", "http://localhost:35555", "set server addr/set ssh name / set some other ")
 	flag.IntVar(&l, "l", 1091, "set local socks5 listen port")
 
 	flag.BoolVar(&dev, "dev", false, "use ssh to devploy proxy server ; example -H 'user@host:port/pwd' -dev ")
@@ -33,6 +37,8 @@ func main() {
 	flag.BoolVar(&httpmode, "http", false, "true to use http mode")
 	flag.BoolVar(&noopenbrowser, "no-open", false, "true not open browser")
 	flag.BoolVar(&daemon, "d", false, "true to run deamon")
+	flag.BoolVar(&log, "log", false, "true to get log")
+
 	// flag.BoolVar(&cli, "cli", false, "true to use cli-client")
 	// flag.BoolVar(&configbuild, "", false, "true to use vultr api to build host group")
 
@@ -79,5 +85,44 @@ func main() {
 	if httpmode {
 		deploy.LocalAPI(noopenbrowser)
 	}
+	if log {
+		f := ""
+		if !gs.Str(server).In(":55443") {
+			server += ":55443"
+		}
+		if gs.Str(server).In("://") {
+			f = "https://" + gs.Str(server).Split("://")[1].Str()
+		} else {
+			f = "https://" + gs.Str(server).Str()
+		}
+		req := gs.Str(f + "/z-log").AsRequest()
+		r := gn.AsReq(req).Go().AsRequest().BodyReader()
+		io.Copy(os.Stdout, r)
+		os.Exit(0)
+	}
+	if gs.Str(server) != "" && !gs.Str(server).In("http://") {
+		clientcontroll.RunLocal(server, l)
+		os.Exit(0)
+	}
 
+	if server == "http://localhost:35555" {
+		switch gt.Select[string](gs.List[string]{
+			"change proxy type",
+		}) {
+		case "change proxy type":
+			switch choose := gt.Select[string](gs.List[string]{
+				"quic",
+				"tls",
+				"kcp",
+			}); choose {
+			default:
+				req := gs.Str(server + "/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[string]{
+					"op":   "change",
+					"type": choose,
+				}.Json())
+				gn.AsReq(req).Go().Body().Println()
+
+			}
+		}
+	}
 }

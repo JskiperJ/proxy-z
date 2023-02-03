@@ -3,6 +3,7 @@ package servercontroll
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -49,10 +50,9 @@ func Recv(r io.Reader) (d gs.Dict[any], err error) {
 	if len(buf) == 0 {
 		return nil, nil
 	}
-	if d := gs.S(buf).Json(); len(d) > 0 {
-		return d, nil
-	}
-	return nil, nil
+	d = make(gs.Dict[any])
+	err = json.Unmarshal(buf, &d)
+	return
 }
 
 func HTTP3Server(serverAddr, wwwDir string, useQuic bool) {
