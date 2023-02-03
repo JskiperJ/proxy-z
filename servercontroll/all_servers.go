@@ -127,7 +127,7 @@ func setupHandler(www string) http.Handler {
 	mux.HandleFunc("/z-log", func(w http.ResponseWriter, r *http.Request) {
 		if gs.Str("/tmp/z.log").IsExists() {
 			// w.Write(gs.Str("/tmp/z.log").MustAsFile().Bytes())
-			_, fp, err := gs.Str("/tmp/z.log").OpenFile(gs.O_READ_ONLY)
+			fp, err := os.Open("/tmp/z.log")
 			if err != nil {
 				w.Write([]byte(err.Error()))
 			} else {
@@ -163,6 +163,7 @@ func setupHandler(www string) http.Handler {
 			DelProxy(i)
 		})
 
+		Reply(w, "updaing... wait 3 s", true)
 		update.Update(func(info string, ok bool) {
 			Reply(w, info, ok)
 		})

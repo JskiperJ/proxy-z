@@ -457,7 +457,7 @@ func (c *ClientControl) InitializationTunnels() {
 				if err != nil {
 					// gs.Str("rebuild smux err:" + err.Error()).Println("Err")
 					l.Lock()
-					msgs[no] = gs.Str('*').Color("r", "B")
+					msgs[no] = gs.Str('*').Color("r", "F")
 					l.Unlock()
 					gs.Str("%s >> %s \r").F(c.Addr, msgs.Join("")).Print()
 					base.ErrToFile("RebuildSmux Er", err)
