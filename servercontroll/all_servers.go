@@ -43,11 +43,21 @@ func setupHandler(www string) http.Handler {
 	})
 	mux.HandleFunc("/proxy-info", func(w http.ResponseWriter, r *http.Request) {
 		ids := []string{}
+		proxy := gs.Dict[int]{
+			"tls":  0,
+			"quic": 0,
+			"kcp":  0,
+		}
 		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+			proxy[i.GetConfig().ProxyType] += 1
 			ids = append(ids, i.GetConfig().ID)
+
 		})
-		Reply(w, gs.Dict[[]string]{
-			"ids": ids}, true)
+		Reply(w, gs.Dict[any]{
+			"ids":   ids,
+			"proxy": proxy,
+			"err":   ErrTypeCount,
+		}, true)
 	})
 
 	mux.HandleFunc("/z-dns", func(w http.ResponseWriter, r *http.Request) {

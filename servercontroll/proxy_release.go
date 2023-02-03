@@ -89,11 +89,19 @@ func DelProxy(name string) (found bool) {
 func NewProxyByErrCount() (c *base.ProxyTunnel) {
 	tlsnum := ErrTypeCount["tls"]
 	kcpnum := ErrTypeCount["kcp"]
-	if kcpnum < tlsnum {
-		c = NewProxy("kcp")
+	quicum := ErrTypeCount["quic"]
+	if quicum < tlsnum {
+		c = NewProxy("quic")
 	} else {
-		c = NewProxy("tls")
+		if kcpnum < tlsnum {
+
+			c = NewProxy("kcp")
+		} else {
+			c = NewProxy("tls")
+		}
+
 	}
+
 	AddProxy(c)
 	return
 }
