@@ -7,8 +7,8 @@ import (
 	"path"
 	"time"
 
-	"gitee.com/dark.H/ProxyZ/servercontroll"
-	"gitee.com/dark.H/gs"
+	"github.com/JskiperJ/proxy-z/ProxyZ/servercontroll"
+	"github.com/JskiperJ/proxy-z/gs"
 )
 
 var (
